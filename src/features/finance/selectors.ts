@@ -29,6 +29,7 @@ export type TransactionView = {
   occurredAt: string;
   amountMinor: number;
   currency: string;
+  status?: Transaction["status"];
 };
 
 export function getFinanceDataset() {

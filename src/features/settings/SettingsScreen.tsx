@@ -1,3 +1,5 @@
+import { router, type Href } from "expo-router";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
@@ -6,7 +8,6 @@ import { AppText } from "@/src/components/AppText";
 import { useSettingsOverview } from "@/src/features/finance/hooks";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { theme } from "@/src/theme";
-import { useState } from "react";
 
 export function SettingsScreen() {
   const settings = useSettingsOverview();
@@ -50,6 +51,12 @@ export function SettingsScreen() {
             <AppText variant="label">{row.value}</AppText>
           </View>
         ))}
+      </View>
+
+      <View style={styles.actionCard}>
+        <AppText variant="label">Finance setup</AppText>
+        <AppButton onPress={() => router.push("/accounts" as Href)} title="Manage accounts" variant="secondary" />
+        <AppButton onPress={() => router.push("/categories" as Href)} title="Manage categories" variant="secondary" />
       </View>
 
       <View style={styles.actionCard}>

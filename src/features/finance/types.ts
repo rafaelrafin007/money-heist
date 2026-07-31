@@ -27,6 +27,11 @@ export type Category = {
   name: string;
   kind: CategoryKind;
   color?: string;
+  iconName?: string | null;
+  isSystem?: boolean;
+  isArchived?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type TransactionStatus = "active" | "cancelled" | "deleted" | "inactive";

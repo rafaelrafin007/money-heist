@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { toSafeAuthErrorMessage, getErrorMessage } from "@/src/features/auth/authErrors";
 import { getAuthRedirectUrl, getPasswordResetRedirectUrl } from "@/src/features/auth/redirects";
 import { mapProfileRow, type UserProfile } from "@/src/features/auth/types/profile";
+import { clearAuthenticatedFinanceCache } from "@/src/lib/queryClient";
 import { getSupabaseClient } from "@/src/lib/supabase";
 
 type AuthActionResult =
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (!nextSession?.user) {
         setProfile(null);
         setProfileError(null);
+        clearAuthenticatedFinanceCache();
         return;
       }
 
@@ -214,6 +216,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       await applySession(null);
+      clearAuthenticatedFinanceCache();
       return { ok: true };
     } catch (error) {
       return { ok: false, message: toSafeAuthErrorMessage(error) };
