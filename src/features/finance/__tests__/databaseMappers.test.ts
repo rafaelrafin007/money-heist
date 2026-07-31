@@ -20,6 +20,7 @@ const savingsId = "00000000-0000-4000-8000-000000000004";
 const incomeCategoryId = "00000000-0000-4000-8000-000000000005";
 const expenseCategoryId = "00000000-0000-4000-8000-000000000006";
 const createdAt = "2026-07-31T00:00:00Z";
+const julyReferenceDate = new Date("2026-07-31T12:00:00.000Z");
 
 const accountRow: AccountRow = {
   id: bankId,
@@ -115,7 +116,7 @@ describe("dashboard integration", () => {
       transactionRowToDomain(baseTransactionRow("transfer")),
       transactionRowToDomain({ ...baseTransactionRow("expense"), id: "00000000-0000-4000-8000-000000000099", transaction_status: "cancelled", amount_minor: 999999 }),
     ];
-    const overview = getRealDashboardOverview(accounts, categories, transactions);
+    const overview = getRealDashboardOverview(accounts, categories, transactions, julyReferenceDate);
 
     expect(overview.incomeMinor).toBe(50000);
     expect(overview.expensesMinor).toBe(10000);

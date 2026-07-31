@@ -36,9 +36,14 @@ export function buildFinanceDataset(accounts: Account[], categories: Category[],
   };
 }
 
-export function getRealDashboardOverview(accounts: Account[], categories: Category[], transactions: Transaction[]) {
+export function getRealDashboardOverview(
+  accounts: Account[],
+  categories: Category[],
+  transactions: Transaction[],
+  referenceDate = new Date(),
+) {
   const dataset = buildFinanceDataset(accounts, categories, transactions);
-  const range = getCurrentCalendarMonth();
+  const range = getCurrentCalendarMonth(referenceDate);
   const balances = calculateAccountBalances(dataset);
   const liquidBalanceMinor = balances
     .filter(({ account }) => !account.isArchived && isAssetAccount(account) && !account.isSavings)
