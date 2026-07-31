@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "money-heist",
+    "name": "Money Heist",
     "slug": "money-heist",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,9 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "bundleIdentifier": "com.example.moneyheist",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.example.moneyheist",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -43,6 +45,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "identityNote": "Bundle identifiers use safe example placeholders until production IDs are assigned."
     }
   }
 }

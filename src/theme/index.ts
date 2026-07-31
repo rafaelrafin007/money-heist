@@ -1,0 +1,105 @@
+import { Platform } from "react-native";
+
+const palette = {
+  blue900: "#102A43",
+  blue700: "#1D4E89",
+  blue50: "#EFF6FF",
+  green700: "#237B4B",
+  green50: "#EAF7EF",
+  red700: "#B42318",
+  red50: "#FEF3F2",
+  amber700: "#B54708",
+  amber50: "#FFFAEB",
+  ink900: "#17202A",
+  ink700: "#344054",
+  ink500: "#667085",
+  ink300: "#98A2B3",
+  line: "#D0D5DD",
+  lineSoft: "#EAECF0",
+  surface: "#FFFFFF",
+  surfaceMuted: "#F8FAFC",
+  background: "#F3F6FA",
+};
+
+export const lightTheme = {
+  colors: {
+    background: palette.background,
+    surface: palette.surface,
+    surfaceMuted: palette.surfaceMuted,
+    surfaceTint: palette.blue50,
+    primary: palette.blue900,
+    primaryMuted: palette.blue700,
+    success: palette.green700,
+    successSurface: palette.green50,
+    warning: palette.amber700,
+    warningSurface: palette.amber50,
+    danger: palette.red700,
+    dangerSurface: palette.red50,
+    text: palette.ink900,
+    textMuted: palette.ink700,
+    textSubtle: palette.ink500,
+    textDisabled: palette.ink300,
+    border: palette.line,
+    borderSubtle: palette.lineSoft,
+    inverseText: palette.surface,
+    inputBackground: palette.surface,
+  },
+  typography: {
+    family: Platform.select({ ios: "System", android: "sans-serif", default: "System" }),
+    sizes: {
+      xs: 12,
+      sm: 14,
+      md: 16,
+      lg: 18,
+      xl: 22,
+      xxl: 30,
+    },
+    lineHeights: {
+      xs: 16,
+      sm: 20,
+      md: 24,
+      lg: 26,
+      xl: 30,
+      xxl: 38,
+    },
+    weights: {
+      regular: "400",
+      medium: "500",
+      semibold: "600",
+      bold: "700",
+    },
+  },
+  spacing: {
+    xxs: 4,
+    xs: 8,
+    sm: 12,
+    md: 16,
+    lg: 20,
+    xl: 24,
+    xxl: 32,
+    xxxl: 40,
+  },
+  radius: {
+    sm: 6,
+    md: 8,
+    lg: 12,
+    xl: 16,
+    pill: 999,
+  },
+  shadows: {
+    card: {
+      shadowColor: "#101828",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.08,
+      shadowRadius: 18,
+      elevation: 3,
+    },
+  },
+  layout: {
+    screenPadding: 20,
+    maxContentWidth: 680,
+  },
+} as const;
+
+export type AppTheme = typeof lightTheme;
+export const theme = lightTheme;
