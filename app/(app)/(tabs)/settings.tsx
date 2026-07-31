@@ -1,10 +1,5 @@
-import { FeaturePlaceholderScreen } from "@/src/components/FeaturePlaceholderScreen";
+import { SettingsScreen } from "@/src/features/settings/SettingsScreen";
 
 export default function SettingsRoute() {
-  return (
-    <FeaturePlaceholderScreen
-      title="Settings"
-      description="Profile, app security, export, account deletion and synchronization settings will be added in later phases."
-    />
-  );
+  return <SettingsScreen />;
 }

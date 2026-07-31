@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -10,6 +10,7 @@ import { AuthHeader } from "@/src/components/AuthHeader";
 import { PasswordInput } from "@/src/components/PasswordInput";
 import { AuthFooterLink } from "@/src/features/auth/components/AuthFooterLink";
 import { AuthFormCard } from "@/src/features/auth/components/AuthFormCard";
+import { useAuth } from "@/src/providers/AuthProvider";
 import {
   hasErrors,
   validateSignIn,
@@ -28,6 +29,8 @@ export function SignInScreen() {
   const [errors, setErrors] = useState<FormErrors<SignInValues>>({});
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn, configurationError } = useAuth();
 
   function updateValue(field: keyof SignInValues, value: string) {
     setValues((currentValues) => ({ ...currentValues, [field]: value }));
@@ -35,7 +38,7 @@ export function SignInScreen() {
     setStatusMessage(undefined);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const nextErrors = validateSignIn(values);
     setErrors(nextErrors);
 
@@ -43,7 +46,16 @@ export function SignInScreen() {
       return;
     }
 
-    setStatusMessage("Supabase Auth is not connected yet. This submit handler is a placeholder.");
+    setIsSubmitting(true);
+    const result = await signIn(values.email, values.password);
+    setIsSubmitting(false);
+
+    if (!result.ok) {
+      setStatusMessage(result.message);
+      return;
+    }
+
+    router.replace("/dashboard");
   }
 
   return (
@@ -86,19 +98,19 @@ export function SignInScreen() {
           </Link>
         </View>
 
+        {configurationError ? (
+          <AppText style={styles.errorNotice} tone="danger" variant="caption">
+            {configurationError}
+          </AppText>
+        ) : null}
+
         {statusMessage ? (
           <AppText style={styles.notice} tone="subtle" variant="caption">
             {statusMessage}
           </AppText>
         ) : null}
 
-        <AppButton onPress={handleSubmit} title="Sign in" />
-
-        {__DEV__ ? (
-          <Link href="/dashboard" style={styles.devLink}>
-            Development preview: open dashboard shell
-          </Link>
-        ) : null}
+        <AppButton disabled={Boolean(configurationError)} loading={isSubmitting} onPress={handleSubmit} title="Sign in" />
 
         <AuthFooterLink href="/sign-up" label="Create account" prompt="New to Money Heist?" />
       </AuthFormCard>
@@ -125,11 +137,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.surfaceTint,
   },
-  devLink: {
-    alignSelf: "center",
-    color: theme.colors.warning,
-    fontSize: theme.typography.sizes.sm,
-    fontWeight: theme.typography.weights.semibold,
-    lineHeight: theme.typography.lineHeights.sm,
+  errorNotice: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.dangerSurface,
   },
 });

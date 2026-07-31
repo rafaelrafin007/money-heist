@@ -1,10 +1,5 @@
-import { FeaturePlaceholderScreen } from "@/src/components/FeaturePlaceholderScreen";
+import { TransactionsScreen } from "@/src/features/transactions/TransactionsScreen";
 
 export default function TransactionsRoute() {
-  return (
-    <FeaturePlaceholderScreen
-      title="Transactions"
-      description="Income, expenses, transfers and adjustments will be managed here with transaction history as the source of truth."
-    />
-  );
+  return <TransactionsScreen />;
 }

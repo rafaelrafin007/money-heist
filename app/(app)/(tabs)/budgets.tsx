@@ -1,10 +1,5 @@
-import { FeaturePlaceholderScreen } from "@/src/components/FeaturePlaceholderScreen";
+import { BudgetsScreen } from "@/src/features/budgets/BudgetsScreen";
 
 export default function BudgetsRoute() {
-  return (
-    <FeaturePlaceholderScreen
-      title="Budgets"
-      description="Monthly category budgets and reserved spending will be introduced after the core data model is in place."
-    />
-  );
+  return <BudgetsScreen />;
 }

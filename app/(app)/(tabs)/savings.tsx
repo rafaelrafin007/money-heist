@@ -1,10 +1,5 @@
-import { FeaturePlaceholderScreen } from "@/src/components/FeaturePlaceholderScreen";
+import { SavingsScreen } from "@/src/features/savings/SavingsScreen";
 
 export default function SavingsRoute() {
-  return (
-    <FeaturePlaceholderScreen
-      title="Savings"
-      description="Savings accounts, goals, transfers into savings and withdrawals from savings will be tracked here."
-    />
-  );
+  return <SavingsScreen />;
 }

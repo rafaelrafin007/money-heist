@@ -16,6 +16,11 @@ export type ForgotPasswordValues = {
   email: string;
 };
 
+export type ResetPasswordValues = {
+  password: string;
+  confirmPassword: string;
+};
+
 export type FormErrors<TValues> = Partial<Record<keyof TValues, string>>;
 
 export const passwordRequirements = [
@@ -37,7 +42,7 @@ export function validateEmail(email: string) {
   return undefined;
 }
 
-function validatePassword(password: string) {
+export function validatePasswordValue(password: string) {
   if (!password) {
     return "Password is required.";
   }
@@ -71,7 +76,7 @@ export function validateSignIn(values: SignInValues): FormErrors<SignInValues> {
 export function validateSignUp(values: SignUpValues): FormErrors<SignUpValues> {
   const errors: FormErrors<SignUpValues> = {};
   const emailError = validateEmail(values.email);
-  const passwordError = validatePassword(values.password);
+  const passwordError = validatePasswordValue(values.password);
 
   if (!values.fullName.trim()) {
     errors.fullName = "Full name is required.";
@@ -98,6 +103,23 @@ export function validateForgotPassword(values: ForgotPasswordValues): FormErrors
   const emailError = validateEmail(values.email);
 
   return emailError ? { email: emailError } : {};
+}
+
+export function validateResetPassword(values: ResetPasswordValues): FormErrors<ResetPasswordValues> {
+  const errors: FormErrors<ResetPasswordValues> = {};
+  const passwordError = validatePasswordValue(values.password);
+
+  if (passwordError) {
+    errors.password = passwordError;
+  }
+
+  if (!values.confirmPassword) {
+    errors.confirmPassword = "Confirm your new password.";
+  } else if (values.confirmPassword !== values.password) {
+    errors.confirmPassword = "Passwords do not match.";
+  }
+
+  return errors;
 }
 
 export function hasErrors<TValues>(errors: FormErrors<TValues>) {

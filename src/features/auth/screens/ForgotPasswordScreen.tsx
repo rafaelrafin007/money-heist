@@ -14,6 +14,7 @@ import {
   type ForgotPasswordValues,
   type FormErrors,
 } from "@/src/features/auth/validation";
+import { useAuth } from "@/src/providers/AuthProvider";
 import { theme } from "@/src/theme";
 
 const initialValues: ForgotPasswordValues = {
@@ -23,15 +24,17 @@ const initialValues: ForgotPasswordValues = {
 export function ForgotPasswordScreen() {
   const [values, setValues] = useState<ForgotPasswordValues>(initialValues);
   const [errors, setErrors] = useState<FormErrors<ForgotPasswordValues>>({});
-  const [submittedEmail, setSubmittedEmail] = useState<string>();
+  const [statusMessage, setStatusMessage] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { requestPasswordReset, configurationError } = useAuth();
 
   function updateEmail(email: string) {
     setValues({ email });
     setErrors({});
-    setSubmittedEmail(undefined);
+    setStatusMessage(undefined);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const nextErrors = validateForgotPassword(values);
     setErrors(nextErrors);
 
@@ -39,7 +42,14 @@ export function ForgotPasswordScreen() {
       return;
     }
 
-    setSubmittedEmail(values.email.trim());
+    setIsSubmitting(true);
+    const result = await requestPasswordReset(values.email);
+    setIsSubmitting(false);
+    setStatusMessage(
+      result.ok
+        ? "If an account exists for that email, password reset instructions will be sent."
+        : result.message,
+    );
   }
 
   return (
@@ -64,14 +74,24 @@ export function ForgotPasswordScreen() {
           value={values.email}
         />
 
-        {submittedEmail ? (
-          <AppText accessibilityLiveRegion="polite" style={styles.success} tone="success" variant="caption">
-            Password reset is not connected yet. A future Supabase flow will send instructions to{" "}
-            {submittedEmail}.
+        {configurationError ? (
+          <AppText style={styles.errorNotice} tone="danger" variant="caption">
+            {configurationError}
           </AppText>
         ) : null}
 
-        <AppButton onPress={handleSubmit} title="Continue" />
+        {statusMessage ? (
+          <AppText accessibilityLiveRegion="polite" style={styles.success} tone="success" variant="caption">
+            {statusMessage}
+          </AppText>
+        ) : null}
+
+        <AppButton
+          disabled={Boolean(configurationError)}
+          loading={isSubmitting}
+          onPress={handleSubmit}
+          title="Continue"
+        />
 
         <AuthFooterLink href="/sign-in" label="Back to sign in" prompt="Remembered your password?" />
       </AuthFormCard>
@@ -87,5 +107,10 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.successSurface,
+  },
+  errorNotice: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.dangerSurface,
   },
 });
