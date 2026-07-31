@@ -1,6 +1,6 @@
 import { router, type Href } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, Platform, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
 import { AppScreen } from "@/src/components/AppScreen";
@@ -24,6 +24,37 @@ export function SettingsScreen() {
     { label: "Cloud finance sync", value: settings.cloudFinanceSync },
   ];
 
+  function confirmSignOut() {
+    if (isSigningOut) {
+      return;
+    }
+
+    setStatusMessage(undefined);
+
+    if (Platform.OS === "web") {
+      const confirmed =
+        typeof globalThis.confirm === "function"
+          ? globalThis.confirm("Log out?\n\nYou will need to sign in again to access your finance data.")
+          : true;
+
+      if (confirmed) {
+        void handleSignOut();
+      }
+      return;
+    }
+
+    Alert.alert("Log out?", "You will need to sign in again to access your finance data.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Log out",
+        style: "destructive",
+        onPress: () => {
+          void handleSignOut();
+        },
+      },
+    ]);
+  }
+
   async function handleSignOut() {
     setIsSigningOut(true);
     setStatusMessage(undefined);
@@ -32,11 +63,14 @@ export function SettingsScreen() {
 
     if (!result.ok) {
       setStatusMessage(result.message);
+      return;
     }
+
+    router.replace("/sign-in");
   }
 
   return (
-    <AppScreen>
+    <AppScreen scroll contentStyle={styles.screenContent}>
       <View style={styles.header}>
         <AppText tone="subtle" variant="label">
           App status
@@ -62,20 +96,31 @@ export function SettingsScreen() {
       <View style={styles.actionCard}>
         <AppText variant="label">Session</AppText>
         <AppText tone="subtle" variant="caption">
-          Signing out clears the Supabase session on this device. Demo finance data is not deleted.
+          Logging out clears the Supabase session on this device and removes cached finance data from this app session.
         </AppText>
         {statusMessage ? (
           <AppText style={styles.errorNotice} tone="danger" variant="caption">
             {statusMessage}
           </AppText>
         ) : null}
-        <AppButton loading={isSigningOut} onPress={handleSignOut} title="Sign out" variant="secondary" />
+        <AppButton
+          accessibilityLabel="Log out of Money Heist"
+          disabled={isSigningOut}
+          loading={isSigningOut}
+          onPress={confirmSignOut}
+          style={styles.logoutButton}
+          title="Log out"
+          variant="secondary"
+        />
       </View>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContent: {
+    paddingBottom: theme.spacing.xxxl * 3,
+  },
   header: {
     gap: theme.spacing.xxs,
     marginBottom: theme.spacing.lg,
@@ -107,6 +152,10 @@ const styles = StyleSheet.create({
   errorNotice: {
     padding: theme.spacing.md,
     borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.dangerSurface,
+  },
+  logoutButton: {
+    borderColor: theme.colors.danger,
     backgroundColor: theme.colors.dangerSurface,
   },
 });
