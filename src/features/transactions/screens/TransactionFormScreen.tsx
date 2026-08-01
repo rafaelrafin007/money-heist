@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams, type Href } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
@@ -9,9 +9,15 @@ import { AppTextInput } from "@/src/components/AppTextInput";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
 import { InlineState } from "@/src/features/finance/components/InlineState";
+import { shiftIsoDate, toIsoDate } from "@/src/features/finance/dates";
 import type { TransactionFormValues } from "@/src/features/finance/api/databaseMappers";
 import { minorToDisplayParts } from "@/src/features/finance/money";
 import type { Category, Transaction } from "@/src/features/finance/types";
+import {
+  getTransactionSuccessMessage,
+  sanitizeTransactionRoutePreset,
+  type TransactionEntryMode,
+} from "@/src/features/transactions/quickEntry";
 import { useCreateTransaction, useUpdateTransaction } from "@/src/features/transactions/api/transactionsHooks";
 import { theme } from "@/src/theme";
 
@@ -22,39 +28,61 @@ type TransactionFormScreenProps = {
 const transactionTypes: TransactionFormValues["type"][] = ["income", "expense", "transfer"];
 
 export function TransactionFormScreen({ transaction }: TransactionFormScreenProps) {
-  const params = useLocalSearchParams<{ type?: string; accountId?: string; destinationAccountId?: string }>();
+  const params = useLocalSearchParams<{ type?: string; mode?: string; accountId?: string; sourceAccountId?: string; destinationAccountId?: string; date?: string }>();
   const accounts = useAccounts();
   const categories = useCategories();
   const create = useCreateTransaction();
   const update = useUpdateTransaction(transaction?.id ?? "", transaction);
   const [values, setValues] = useState<TransactionFormValues>(() => ({
-    type: transaction && transaction.type !== "adjustment"
-      ? transaction.type
-      : params.type === "income" || params.type === "expense" || params.type === "transfer"
-        ? params.type
-        : "expense",
+    type: transaction && transaction.type !== "adjustment" ? transaction.type : "expense",
     amount: transaction ? formatMinorForInput(transaction.amountMinor) : "",
-    occurredAt: transaction?.occurredAt ?? new Date().toISOString().slice(0, 10),
-    accountId: transaction?.accountId ?? params.accountId ?? "",
-    destinationAccountId: transaction?.type === "transfer" ? transaction.destinationAccountId : params.destinationAccountId ?? "",
+    occurredAt: transaction?.occurredAt ?? toIsoDate(new Date()),
+    accountId: transaction?.accountId ?? "",
+    destinationAccountId: transaction?.type === "transfer" ? transaction.destinationAccountId : "",
     categoryId: transaction?.type === "income" || transaction?.type === "expense" ? transaction.categoryId : "",
     note: transaction?.note ?? "",
   }));
   const [error, setError] = useState<string>();
+  const [successMessage, setSuccessMessage] = useState<string>();
+  const [presetApplied, setPresetApplied] = useState(Boolean(transaction));
   const activeAccounts = (accounts.data ?? []).filter((account) => !account.isArchived);
+  const activeSavingsAccounts = activeAccounts.filter((account) => account.isSavings);
   const activeCategories = (categories.data ?? []).filter((category) => !category.isArchived);
+  const entryMode: TransactionEntryMode = params.mode === "savings" ? "savings" : "standard";
   const selectableCategories = useMemo(
     () => activeCategories.filter((category) => category.kind === values.type),
     [activeCategories, values.type],
   );
+  const destinationAccounts = entryMode === "savings" ? activeSavingsAccounts : activeAccounts;
+
+  useEffect(() => {
+    if (presetApplied || transaction || accounts.isLoading) {
+      return;
+    }
+
+    const preset = sanitizeTransactionRoutePreset(params, activeAccounts);
+    setValues((current) => ({
+      ...current,
+      type: preset.type,
+      occurredAt: preset.occurredAt,
+      accountId: preset.accountId,
+      destinationAccountId:
+        preset.destinationAccountId ||
+        (preset.mode === "savings" && activeSavingsAccounts.length === 1 ? activeSavingsAccounts[0].id : ""),
+    }));
+    setPresetApplied(true);
+  }, [accounts.isLoading, activeAccounts, activeSavingsAccounts, params, presetApplied, transaction]);
 
   async function handleSubmit() {
     setError(undefined);
+    setSuccessMessage(undefined);
     try {
       const saved = transaction
         ? await update.mutateAsync(values)
         : await create.mutateAsync(values);
-      router.replace(`/transactions/${saved.id}` as Href);
+      const message = getTransactionSuccessMessage(saved, entryMode);
+      setSuccessMessage(message);
+      router.replace(`/transactions/${saved.id}?status=${encodeURIComponent(message)}` as Href);
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Transaction could not be saved.");
     }
@@ -82,12 +110,17 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
   }
 
   return (
-    <AppScreen scroll>
+    <AppScreen scroll contentStyle={styles.screenContent}>
       <View style={styles.header}>
         <AppText tone="subtle" variant="label">
-          {transaction ? "Edit transaction" : "New transaction"}
+          {transaction ? "Edit transaction" : entryMode === "savings" ? "Save money" : "New transaction"}
         </AppText>
-        <AppText variant="title">{transaction ? "Update record" : "Add transaction"}</AppText>
+        <AppText variant="title">{transaction ? "Update record" : entryMode === "savings" ? "Save money" : "Add transaction"}</AppText>
+        {entryMode === "savings" ? (
+          <AppText tone="subtle">
+            Saving moves money into one of your savings accounts. It is not counted as an expense.
+          </AppText>
+        ) : null}
       </View>
 
       <View style={styles.card}>
@@ -105,7 +138,7 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
                     ...current,
                     type,
                     categoryId: "",
-                    destinationAccountId: "",
+                    destinationAccountId: type === "transfer" && entryMode === "savings" && activeSavingsAccounts.length === 1 ? activeSavingsAccounts[0].id : "",
                   }))
                 }
               />
@@ -126,6 +159,15 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
           value={values.amount}
         />
 
+        <View style={styles.group}>
+          <AppText variant="label">Date shortcut</AppText>
+          <View style={styles.chips}>
+            <Chip active={values.occurredAt === toIsoDate(new Date())} label="Today" onPress={() => setValues((current) => ({ ...current, occurredAt: toIsoDate(new Date()) }))} />
+            <Chip active={values.occurredAt === shiftIsoDate(toIsoDate(new Date()), -1)} label="Yesterday" onPress={() => setValues((current) => ({ ...current, occurredAt: shiftIsoDate(toIsoDate(new Date()), -1) }))} />
+            <Chip active={values.occurredAt !== toIsoDate(new Date()) && values.occurredAt !== shiftIsoDate(toIsoDate(new Date()), -1)} label="Custom date" onPress={() => undefined} />
+          </View>
+        </View>
+
         <AppTextInput
           label="Date"
           onChangeText={(occurredAt) => setValues((current) => ({ ...current, occurredAt }))}
@@ -143,7 +185,7 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
         {values.type === "transfer" ? (
           <PickerGroup
             label="Destination account"
-            options={activeAccounts.map((account) => ({ id: account.id, label: `${account.name} (${account.currency})` }))}
+            options={destinationAccounts.map((account) => ({ id: account.id, label: `${account.name} (${account.currency})` }))}
             selectedId={values.destinationAccountId}
             onSelect={(destinationAccountId) => setValues((current) => ({ ...current, destinationAccountId }))}
           />
@@ -170,10 +212,17 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
           </AppText>
         ) : null}
 
+        {successMessage ? (
+          <AppText style={styles.success} tone="success" variant="caption">
+            {successMessage}
+          </AppText>
+        ) : null}
+
         <AppButton
+          disabled={create.isPending || update.isPending}
           loading={create.isPending || update.isPending}
           onPress={handleSubmit}
-          title={transaction ? "Save transaction" : "Create transaction"}
+          title={transaction ? "Save transaction" : getSubmitLabel(values.type, entryMode)}
         />
       </View>
     </AppScreen>
@@ -241,6 +290,9 @@ function Chip({
 }
 
 const styles = StyleSheet.create({
+  screenContent: {
+    paddingBottom: theme.spacing.xxxl,
+  },
   header: {
     gap: theme.spacing.xxs,
     marginBottom: theme.spacing.lg,
@@ -281,9 +333,21 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.dangerSurface,
   },
+  success: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.successSurface,
+  },
 });
 
 function formatMinorForInput(amountMinor: number) {
   const parts = minorToDisplayParts(amountMinor);
   return `${parts.major}.${String(parts.minor).padStart(2, "0")}`;
+}
+
+function getSubmitLabel(type: TransactionFormValues["type"], mode: TransactionEntryMode) {
+  if (type === "income") return "Add income";
+  if (type === "expense") return "Record expense";
+  if (mode === "savings") return "Save money";
+  return "Create transfer";
 }

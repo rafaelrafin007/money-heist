@@ -34,9 +34,22 @@ export function shiftCalendarMonth(monthStart: string, offsetMonths: number) {
   return toIsoDate(new Date(year, month - 1 + offsetMonths, 1));
 }
 
+export function shiftIsoDate(isoDate: string, offsetDays: number) {
+  assertIsoDate(isoDate);
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return toIsoDate(new Date(year, month - 1, day + offsetDays));
+}
+
 export function assertFirstDayOfMonth(value: string) {
-  if (!/^\d{4}-\d{2}-01$/.test(value) || Number.isNaN(new Date(`${value}T00:00:00`).getTime())) {
+  if (!/^\d{4}-\d{2}-01$/.test(value) || !isValidCalendarDate(value)) {
     throw new Error("Month must be a valid first-day-of-month date.");
+  }
+  return value;
+}
+
+export function assertIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !isValidCalendarDate(value)) {
+    throw new Error("Date must be a valid YYYY-MM-DD date.");
   }
   return value;
 }
@@ -65,4 +78,10 @@ export function daysRemainingInPeriod(range: DateRange, referenceDate = new Date
   const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
   return Math.max(0, Math.floor((endDate.getTime() - startDate.getTime()) / millisecondsPerDay) + 1);
+}
+
+function isValidCalendarDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 }

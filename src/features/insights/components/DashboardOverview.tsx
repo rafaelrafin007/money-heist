@@ -13,6 +13,7 @@ import { getCurrentCalendarMonth } from "@/src/features/finance/dates";
 import { formatMinorAsCurrency } from "@/src/features/finance/money";
 import { useMonthlyFinancePlan } from "@/src/features/planning/api/monthlyFinancePlansHooks";
 import { useSavingsGoals } from "@/src/features/savings/api/savingsGoalsHooks";
+import { QuickEntryActions } from "@/src/features/transactions/components/QuickEntryActions";
 import { useTransactions } from "@/src/features/transactions/api/transactionsHooks";
 import { theme } from "@/src/theme";
 
@@ -93,6 +94,8 @@ export function DashboardOverview() {
 
       {overview ? (
         <>
+          <QuickEntryActions accounts={accounts.data ?? []} />
+
           <View style={styles.balanceCard}>
             <AppText tone="inverse" variant="caption">
               Liquid balance

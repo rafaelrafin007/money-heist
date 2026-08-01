@@ -41,6 +41,12 @@ export function SavingsScreen() {
   );
   const goalProgress = useMemo(() => calculateSavingsGoalProgress(dataset), [dataset]);
   const savingsAccounts = (accounts.data ?? []).filter((account) => account.isSavings && !account.isArchived);
+  const savingsDestinationHref = savingsAccounts.length === 1
+    ? `/transactions/new?type=transfer&mode=savings&destinationAccountId=${savingsAccounts[0].id}`
+    : "/transactions/new?type=transfer&mode=savings";
+  const savingsSourceHref = savingsAccounts.length === 1
+    ? `/transactions/new?type=transfer&sourceAccountId=${savingsAccounts[0].id}`
+    : "/transactions/new?type=transfer";
   const potentialSavings = calculateRealPotentialSavings({
     accounts: accounts.data ?? [],
     categories: categories.data ?? [],
@@ -91,6 +97,21 @@ export function SavingsScreen() {
             <SummaryCard label="Goal needing attention" value={attentionGoal ? formatMinorAsCurrency(attentionGoal.requiredMonthlyContributionMinor, dataset.currency) : "None"} />
           </View>
 
+          <View style={styles.actionCard}>
+            <AppText variant="label">Savings actions</AppText>
+            <AppText tone="subtle" variant="caption">
+              Saving money creates a transfer into a savings account. It is not recorded as an expense.
+            </AppText>
+            {savingsAccounts.length === 0 ? (
+              <AppButton onPress={() => router.push("/accounts/new?savings=true" as Href)} title="Create a savings account before saving money" />
+            ) : (
+              <>
+                <AppButton onPress={() => router.push(savingsDestinationHref as Href)} title="Save money" />
+                <AppButton onPress={() => router.push(savingsSourceHref as Href)} title="Withdraw from savings" variant="secondary" />
+              </>
+            )}
+          </View>
+
           {potentialSavings.status === "incomplete" ? (
             <InlineState
               actionLabel="Complete planning"
@@ -104,7 +125,7 @@ export function SavingsScreen() {
             <InlineState
               actionLabel="Create savings account"
               message="Create an active account marked as savings before creating a savings goal."
-              onAction={() => router.push("/accounts/new")}
+              onAction={() => router.push("/accounts/new?savings=true" as Href)}
               title="No savings accounts"
             />
           ) : null}
@@ -173,12 +194,12 @@ function GoalRow({ progress }: { progress: SavingsGoalProgress }) {
       {progress.goal.linkedAccountId ? (
         <View style={styles.rowActions}>
           <AppButton
-            onPress={() => router.push({ pathname: "/transactions/new", params: { type: "transfer", destinationAccountId: progress.goal.linkedAccountId } } as Href)}
+            onPress={() => router.push(`/transactions/new?type=transfer&mode=savings&destinationAccountId=${progress.goal.linkedAccountId}` as Href)}
             title="Add money"
             variant="secondary"
           />
           <AppButton
-            onPress={() => router.push({ pathname: "/transactions/new", params: { type: "transfer", accountId: progress.goal.linkedAccountId } } as Href)}
+            onPress={() => router.push(`/transactions/new?type=transfer&sourceAccountId=${progress.goal.linkedAccountId}` as Href)}
             title="Withdraw"
             variant="ghost"
           />
@@ -207,6 +228,7 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1, gap: theme.spacing.xxs },
   summaryGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginBottom: theme.spacing.lg },
   summaryCard: { width: "47%", minWidth: 150, flexGrow: 1, gap: theme.spacing.xs, padding: theme.spacing.md, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface },
+  actionCard: { gap: theme.spacing.md, marginBottom: theme.spacing.lg, padding: theme.spacing.lg, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface },
   sectionTitle: { marginTop: theme.spacing.xl, marginBottom: theme.spacing.md },
   listCard: { borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface, overflow: "hidden" },
   goalRow: { gap: theme.spacing.sm, padding: theme.spacing.md, borderBottomWidth: 1, borderBottomColor: theme.colors.borderSubtle },

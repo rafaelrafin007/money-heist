@@ -8,16 +8,25 @@ import { AppText } from "@/src/components/AppText";
 import { AppTextInput } from "@/src/components/AppTextInput";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
-import { getTransactionViews } from "@/src/features/finance/api/realFinanceSelectors";
+import { buildFinanceDataset, getTransactionViews } from "@/src/features/finance/api/realFinanceSelectors";
 import { InlineState } from "@/src/features/finance/components/InlineState";
+import { getCurrentCalendarMonth, toIsoDate } from "@/src/features/finance/dates";
 import { formatMinorAsCurrency } from "@/src/features/finance/money";
 import type { TransactionView } from "@/src/features/finance/selectors";
 import type { Transaction } from "@/src/features/finance/types";
+import { QuickEntryActions } from "@/src/features/transactions/components/QuickEntryActions";
+import {
+  getThisMonthTransactionSummary,
+  getTodayTransactionSummary,
+  groupTransactionsByCalendarDate,
+  type TransactionPeriodSummary,
+} from "@/src/features/transactions/transactionSelectors";
 import { useTransactions } from "@/src/features/transactions/api/transactionsHooks";
 import { theme } from "@/src/theme";
 
 type TransactionFilter = "all" | Transaction["type"];
 type StatusFilter = "active" | "cancelled" | "all";
+type PeriodFilter = "today" | "month" | "all";
 
 const filters: { label: string; value: TransactionFilter }[] = [
   { label: "All", value: "all" },
@@ -32,9 +41,17 @@ export function TransactionsScreen() {
   const transactions = useTransactions();
   const [filter, setFilter] = useState<TransactionFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("today");
   const [search, setSearch] = useState("");
   const isLoading = accounts.isLoading || categories.isLoading || transactions.isLoading;
   const error = accounts.error ?? categories.error ?? transactions.error;
+  const dataset = useMemo(
+    () => buildFinanceDataset(accounts.data ?? [], categories.data ?? [], transactions.data ?? []),
+    [accounts.data, categories.data, transactions.data],
+  );
+  const todaySummary = useMemo(() => getTodayTransactionSummary(dataset), [dataset]);
+  const monthSummary = useMemo(() => getThisMonthTransactionSummary(dataset), [dataset]);
+  const activeSummary = periodFilter === "today" ? todaySummary : monthSummary;
 
   const transactionViews = useMemo(
     () => getTransactionViews(transactions.data ?? [], accounts.data ?? [], categories.data ?? []),
@@ -48,13 +65,28 @@ export function TransactionsScreen() {
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "active" ? transaction.status === "active" : transaction.status === "cancelled");
+      const matchesPeriod =
+        periodFilter === "all" ||
+        (periodFilter === "today" && transaction.occurredAt === toIsoDate(new Date())) ||
+        (periodFilter === "month" &&
+          transaction.occurredAt >= getCurrentCalendarMonth().start &&
+          transaction.occurredAt <= getCurrentCalendarMonth().end);
       const matchesSearch =
         !normalizedSearch ||
         transaction.title.toLowerCase().includes(normalizedSearch) ||
         transaction.detail.toLowerCase().includes(normalizedSearch);
-      return matchesType && matchesStatus && matchesSearch;
+      return matchesType && matchesStatus && matchesPeriod && matchesSearch;
     });
-  }, [filter, search, statusFilter, transactionViews]);
+  }, [filter, periodFilter, search, statusFilter, transactionViews]);
+  const filteredTransactionRows = useMemo(
+    () => (transactions.data ?? []).filter((transaction) => filteredTransactions.some((view) => view.id === transaction.id)),
+    [filteredTransactions, transactions.data],
+  );
+  const groupedTransactions = useMemo(
+    () => groupTransactionsByCalendarDate(dataset, filteredTransactionRows),
+    [dataset, filteredTransactionRows],
+  );
+  const viewsById = useMemo(() => new Map(transactionViews.map((transaction) => [transaction.id, transaction])), [transactionViews]);
 
   return (
     <AppScreen scroll>
@@ -84,6 +116,22 @@ export function TransactionsScreen() {
 
       {!isLoading && !error ? (
         <>
+          <QuickEntryActions accounts={accounts.data ?? []} title="Add money movement" />
+
+          <View style={styles.periodFilters}>
+            <Chip active={periodFilter === "today"} label="Today" onPress={() => setPeriodFilter("today")} />
+            <Chip active={periodFilter === "month"} label="This month" onPress={() => setPeriodFilter("month")} />
+            <Chip active={periodFilter === "all"} label="All transactions" onPress={() => setPeriodFilter("all")} />
+          </View>
+
+          {periodFilter !== "all" ? (
+            <TransactionSummaryCards
+              currency={dataset.currency}
+              label={periodFilter === "today" ? "Today" : "This month"}
+              summary={activeSummary}
+            />
+          ) : null}
+
           <AppTextInput
             autoCapitalize="none"
             label="Search transactions"
@@ -104,22 +152,59 @@ export function TransactionsScreen() {
           </View>
 
           {transactionViews.length === 0 ? (
-            <InlineState
-              actionLabel="Add first transaction"
-              message="Create an account and initialize categories first, then add income, expense or transfer records."
-              onAction={() => router.push("/transactions/new")}
-              title="No transactions yet"
-            />
+            <View style={styles.firstUseCard}>
+              <AppText variant="label">Start your ledger</AppText>
+              <AppText tone="subtle" variant="caption">
+                Add income, record expenses, or transfer money into savings. These are real Supabase records.
+              </AppText>
+              <AppButton onPress={() => router.push("/transactions/new?type=income" as Href)} title="Add your first income" />
+              <AppButton onPress={() => router.push("/transactions/new?type=expense" as Href)} title="Record your first expense" variant="secondary" />
+              <AppButton onPress={() => router.push("/transactions/new?type=transfer&mode=savings" as Href)} title="Transfer money into savings" variant="secondary" />
+            </View>
           ) : null}
 
-          <View style={styles.listCard}>
-            {filteredTransactions.map((transaction) => (
-              <TransactionRow key={transaction.id} transaction={transaction} />
-            ))}
-          </View>
+          {filteredTransactions.length === 0 && transactionViews.length > 0 ? (
+            <InlineState title="No matching transactions" message="Try another period, status, type, or search term." />
+          ) : null}
+
+          {groupedTransactions.map((group) => (
+            <View key={group.date} style={styles.groupCard}>
+              <View style={styles.groupHeader}>
+                <AppText variant="label">{group.label}</AppText>
+                <AppText tone="subtle" variant="caption">
+                  Income {formatMinorAsCurrency(group.summary.incomeMinor, dataset.currency)} - Expenses {formatMinorAsCurrency(group.summary.expensesMinor, dataset.currency)} - Net {formatMinorAsCurrency(group.summary.netCashFlowMinor, dataset.currency)}
+                </AppText>
+              </View>
+              {group.transactions.map((transaction) => {
+                const view = viewsById.get(transaction.id);
+                return view ? <TransactionRow key={transaction.id} transaction={view} /> : null;
+              })}
+            </View>
+          ))}
         </>
       ) : null}
     </AppScreen>
+  );
+}
+
+function TransactionSummaryCards({ label, summary, currency }: { label: string; summary: TransactionPeriodSummary; currency: string }) {
+  return (
+    <View style={styles.summaryGrid}>
+      <SummaryCard label={`${label} income`} value={formatMinorAsCurrency(summary.incomeMinor, currency)} tone="success" />
+      <SummaryCard label={`${label} expenses`} value={formatMinorAsCurrency(-summary.expensesMinor, currency)} tone="danger" />
+      <SummaryCard label={`${label} net cash flow`} value={formatMinorAsCurrency(summary.netCashFlowMinor, currency)} tone={summary.netCashFlowMinor >= 0 ? "success" : "danger"} />
+      <SummaryCard label={`${label} saved`} value={formatMinorAsCurrency(summary.savedMinor, currency)} tone={summary.savedMinor >= 0 ? "success" : "danger"} />
+      <SummaryCard label="Active records" value={`${summary.activeTransactionCount}`} />
+    </View>
+  );
+}
+
+function SummaryCard({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "danger" }) {
+  return (
+    <View style={styles.summaryCard}>
+      <AppText tone="subtle" variant="caption">{label}</AppText>
+      <AppText tone={tone} variant="label">{value}</AppText>
+    </View>
   );
 }
 
@@ -183,6 +268,38 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
     marginTop: theme.spacing.md,
   },
+  periodFilters: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.md,
+  },
+  summaryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  summaryCard: {
+    width: "47%",
+    minWidth: 150,
+    flexGrow: 1,
+    gap: theme.spacing.xs,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+    backgroundColor: theme.colors.surface,
+  },
+  firstUseCard: {
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+    backgroundColor: theme.colors.surface,
+  },
   filterChip: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs,
@@ -202,6 +319,19 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderSubtle,
     backgroundColor: theme.colors.surface,
     overflow: "hidden",
+  },
+  groupCard: {
+    marginTop: theme.spacing.lg,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+    backgroundColor: theme.colors.surface,
+    overflow: "hidden",
+  },
+  groupHeader: {
+    gap: theme.spacing.xs,
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.surfaceMuted,
   },
   transactionRow: {
     flexDirection: "row",

@@ -86,7 +86,5 @@ export function useRestoreTransaction(transactionId: string) {
 
 function invalidateFinanceAfterTransaction(queryClient: ReturnType<typeof useQueryClient>, userId?: string) {
   if (!userId) return;
-  void queryClient.invalidateQueries({ queryKey: financeQueryKeys.transactions(userId) });
-  void queryClient.invalidateQueries({ queryKey: financeQueryKeys.accounts(userId) });
-  void queryClient.invalidateQueries({ queryKey: financeQueryKeys.dashboard(userId) });
+  void queryClient.invalidateQueries({ queryKey: financeQueryKeys.all(userId) });
 }

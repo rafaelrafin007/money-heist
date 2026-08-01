@@ -16,18 +16,19 @@ const accountTypes: AccountType[] = ["cash", "bank", "mobile_wallet", "savings",
 
 type AccountFormScreenProps = {
   account?: Account;
+  defaultSavings?: boolean;
 };
 
-export function AccountFormScreen({ account }: AccountFormScreenProps) {
+export function AccountFormScreen({ account, defaultSavings = false }: AccountFormScreenProps) {
   const isEdit = Boolean(account);
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount(account?.id ?? "");
   const [values, setValues] = useState<AccountFormValues>({
     name: account?.name ?? "",
-    accountType: account?.type ?? "cash",
+    accountType: account?.type ?? (defaultSavings ? "savings" : "cash"),
     currency: account?.currency ?? "BDT",
     openingBalance: account ? formatMinorForInput(account.openingBalanceMinor) : "0",
-    isSavings: account?.isSavings ?? false,
+    isSavings: account?.isSavings ?? defaultSavings,
   });
   const [error, setError] = useState<string>();
 

@@ -1,4 +1,4 @@
-import { router, type Href } from "expo-router";
+import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -17,6 +17,7 @@ type TransactionDetailScreenProps = {
 };
 
 export function TransactionDetailScreen({ transactionId }: TransactionDetailScreenProps) {
+  const params = useLocalSearchParams<{ status?: string }>();
   const transaction = useTransaction(transactionId);
   const accounts = useAccounts();
   const categories = useCategories();
@@ -97,6 +98,12 @@ export function TransactionDetailScreen({ transactionId }: TransactionDetailScre
         <Row label="Updated" value={currentTransaction.updatedAt} />
       </View>
 
+      {params.status ? (
+        <AppText style={styles.success} tone="success" variant="caption">
+          {params.status}
+        </AppText>
+      ) : null}
+
       {confirmCancel ? (
         <AppText style={styles.warning} tone="danger" variant="caption">
           Press Cancel transaction again to confirm. Cancelled transactions remain in history but leave all totals.
@@ -162,5 +169,11 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     borderRadius: theme.radius.md,
     backgroundColor: theme.colors.dangerSurface,
+  },
+  success: {
+    marginTop: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.successSurface,
   },
 });
