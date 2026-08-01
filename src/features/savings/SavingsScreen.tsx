@@ -65,13 +65,13 @@ export function SavingsScreen() {
     <AppScreen scroll contentStyle={styles.screenContent}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <AppText tone="subtle" variant="label">Real Supabase data</AppText>
+          <AppText tone="subtle" variant="label">Goals and progress</AppText>
           <AppText variant="title">Savings</AppText>
         </View>
         <AppButton onPress={() => router.push("/savings/new" as Href)} title="New goal" />
       </View>
 
-      {isLoading ? <InlineState title="Loading savings" message="Calculating savings balances and linked goals." /> : null}
+      {isLoading ? <InlineState title="Loading savings" message="Getting your savings balances and goals." /> : null}
       {error ? (
         <InlineState
           actionLabel="Retry"
@@ -84,7 +84,7 @@ export function SavingsScreen() {
             void budgets.refetch();
             void monthlyPlan.refetch();
           }}
-          title="Savings unavailable"
+          title="We couldn't load your savings"
         />
       ) : null}
 
@@ -219,7 +219,7 @@ function SummaryCard({ label, value, tone = "default" }: { label: string; value:
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Savings request failed.";
+  return error instanceof Error ? error.message : "We couldn't load your savings. Please try again.";
 }
 
 const styles = StyleSheet.create({

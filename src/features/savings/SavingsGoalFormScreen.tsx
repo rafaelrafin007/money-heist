@@ -105,7 +105,7 @@ export function SavingsGoalFormScreen({ goalId }: SavingsGoalFormScreenProps) {
   if (accounts.error || goals.error || goal.error) {
     return (
       <AppScreen>
-        <InlineState title="Savings goal unavailable" message={getMessage(accounts.error ?? goals.error ?? goal.error)} />
+        <InlineState title="We couldn't load this goal" message={getMessage(accounts.error ?? goals.error ?? goal.error)} />
       </AppScreen>
     );
   }
@@ -212,7 +212,7 @@ function formatMinorForInput(amountMinor: number) {
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Savings goal request failed.";
+  return error instanceof Error ? error.message : "We couldn't save this goal. Please try again.";
 }
 
 const styles = StyleSheet.create({

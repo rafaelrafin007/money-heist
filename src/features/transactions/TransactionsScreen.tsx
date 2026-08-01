@@ -12,7 +12,7 @@ import { buildFinanceDataset, getTransactionViews } from "@/src/features/finance
 import { InlineState } from "@/src/features/finance/components/InlineState";
 import { getCurrentCalendarMonth, toIsoDate } from "@/src/features/finance/dates";
 import { formatMinorAsCurrency } from "@/src/features/finance/money";
-import type { TransactionView } from "@/src/features/finance/selectors";
+import type { TransactionView } from "@/src/features/finance/api/realFinanceSelectors";
 import type { Transaction } from "@/src/features/finance/types";
 import { QuickEntryActions } from "@/src/features/transactions/components/QuickEntryActions";
 import {
@@ -93,14 +93,14 @@ export function TransactionsScreen() {
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <AppText tone="subtle" variant="label">
-            Real Supabase data
+            Money in and out
           </AppText>
           <AppText variant="title">Transactions</AppText>
         </View>
         <AppButton onPress={() => router.push("/transactions/new")} title="Add" />
       </View>
 
-      {isLoading ? <InlineState title="Loading transactions" message="Fetching your authenticated ledger." /> : null}
+      {isLoading ? <InlineState title="Loading transactions" message="Getting your recent activity." /> : null}
       {error ? (
         <InlineState
           actionLabel="Retry"
@@ -110,7 +110,7 @@ export function TransactionsScreen() {
             void categories.refetch();
             void transactions.refetch();
           }}
-          title="Transactions unavailable"
+          title="We couldn't load your transactions"
         />
       ) : null}
 
@@ -155,7 +155,7 @@ export function TransactionsScreen() {
             <View style={styles.firstUseCard}>
               <AppText variant="label">Start your ledger</AppText>
               <AppText tone="subtle" variant="caption">
-                Add income, record expenses, or transfer money into savings. These are real Supabase records.
+                Add income, record an expense, or move money into savings.
               </AppText>
               <AppButton onPress={() => router.push("/transactions/new?type=income" as Href)} title="Add your first income" />
               <AppButton onPress={() => router.push("/transactions/new?type=expense" as Href)} title="Record your first expense" variant="secondary" />
@@ -194,7 +194,7 @@ function TransactionSummaryCards({ label, summary, currency }: { label: string; 
       <SummaryCard label={`${label} expenses`} value={formatMinorAsCurrency(-summary.expensesMinor, currency)} tone="danger" />
       <SummaryCard label={`${label} net cash flow`} value={formatMinorAsCurrency(summary.netCashFlowMinor, currency)} tone={summary.netCashFlowMinor >= 0 ? "success" : "danger"} />
       <SummaryCard label={`${label} saved`} value={formatMinorAsCurrency(summary.savedMinor, currency)} tone={summary.savedMinor >= 0 ? "success" : "danger"} />
-      <SummaryCard label="Active records" value={`${summary.activeTransactionCount}`} />
+      <SummaryCard label="Transactions" value={`${summary.activeTransactionCount}`} />
     </View>
   );
 }
@@ -247,7 +247,7 @@ function formatTransactionAmount(transaction: TransactionView) {
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "The transactions request failed.";
+  return error instanceof Error ? error.message : "We couldn't load your transactions. Please try again.";
 }
 
 const styles = StyleSheet.create({

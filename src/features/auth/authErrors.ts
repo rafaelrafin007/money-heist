@@ -1,7 +1,7 @@
 export function toSafeAuthErrorMessage(error: unknown) {
   const message = getErrorMessage(error).toLowerCase();
 
-  if (message.includes("missing expo_public_supabase")) {
+  if (message.includes("app configuration")) {
     return getErrorMessage(error);
   }
 

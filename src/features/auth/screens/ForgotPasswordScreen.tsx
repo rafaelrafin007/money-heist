@@ -56,7 +56,7 @@ export function ForgotPasswordScreen() {
     <AppScreen scroll contentStyle={styles.screen}>
       <AuthHeader
         title="Reset your password"
-        subtitle="Enter your email and we will prepare the password reset flow for Supabase Auth."
+        subtitle="Enter your email and we will send password reset instructions if an account exists."
       />
 
       <AuthFormCard>

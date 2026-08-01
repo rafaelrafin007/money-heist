@@ -16,17 +16,15 @@ export function validateSupabaseEnvironment(input: EnvironmentInput): SupabaseEn
   const supabasePublishableKey = preferredKey || fallbackKey;
 
   if (!supabaseUrl) {
-    throw new Error("Missing EXPO_PUBLIC_SUPABASE_URL. Add it to .env and restart Expo.");
+    throw new Error("App configuration is incomplete. Add the project URL and restart Expo.");
   }
 
   if (!supabaseUrl.startsWith("https://") || !supabaseUrl.includes(".supabase.")) {
-    throw new Error("EXPO_PUBLIC_SUPABASE_URL must be a valid Supabase project URL.");
+    throw new Error("App configuration has an invalid project URL.");
   }
 
   if (!supabasePublishableKey) {
-    throw new Error(
-      "Missing EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Add the Supabase publishable/anon key to .env and restart Expo.",
-    );
+    throw new Error("App configuration is incomplete. Add the publishable key and restart Expo.");
   }
 
   return {

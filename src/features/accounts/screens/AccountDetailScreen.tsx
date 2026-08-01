@@ -57,7 +57,7 @@ export function AccountDetailScreen({ accountId }: AccountDetailScreenProps) {
   if (account.isLoading) {
     return (
       <AppScreen>
-        <InlineState title="Loading account" message="Fetching this account from Supabase." />
+        <InlineState title="Loading account" message="Getting this account." />
       </AppScreen>
     );
   }
@@ -69,7 +69,7 @@ export function AccountDetailScreen({ accountId }: AccountDetailScreenProps) {
           actionLabel="Back to accounts"
           message={account.error instanceof Error ? account.error.message : "This account could not be loaded."}
           onAction={() => router.replace("/accounts" as Href)}
-          title="Account unavailable"
+          title="We couldn't load this account"
         />
       </AppScreen>
     );

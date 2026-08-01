@@ -12,7 +12,7 @@ export default function EditAccountRoute() {
   if (account.isLoading) {
     return (
       <AppScreen>
-        <InlineState title="Loading account" message="Fetching account details." />
+        <InlineState title="Loading account" message="Getting account details." />
       </AppScreen>
     );
   }
@@ -20,7 +20,7 @@ export default function EditAccountRoute() {
   if (!account.data) {
     return (
       <AppScreen>
-        <InlineState title="Account unavailable" message="This account could not be loaded." />
+        <InlineState title="We couldn't load this account" message="Please go back and try again." />
       </AppScreen>
     );
   }

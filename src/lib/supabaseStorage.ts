@@ -45,7 +45,7 @@ export const nativeSecureStorage: SupabaseStorageAdapter = {
 
       return chunks.join("");
     } catch (error) {
-      throw new Error(`Unable to read the Supabase session from secure storage: ${getErrorMessage(error)}`);
+      throw new Error(`Unable to read your saved session from secure storage: ${getErrorMessage(error)}`);
     }
   },
   async setItem(key, value) {
@@ -64,7 +64,7 @@ export const nativeSecureStorage: SupabaseStorageAdapter = {
         keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
       });
     } catch (error) {
-      throw new Error(`Unable to save the Supabase session securely: ${getErrorMessage(error)}`);
+      throw new Error(`Unable to save your session securely: ${getErrorMessage(error)}`);
     }
   },
   async removeItem(key) {
@@ -75,7 +75,7 @@ export const nativeSecureStorage: SupabaseStorageAdapter = {
       );
       await SecureStore.deleteItemAsync(metaKey(key));
     } catch (error) {
-      throw new Error(`Unable to clear the Supabase session from secure storage: ${getErrorMessage(error)}`);
+      throw new Error(`Unable to clear your saved session from secure storage: ${getErrorMessage(error)}`);
     }
   },
 };

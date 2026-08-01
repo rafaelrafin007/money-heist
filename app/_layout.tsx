@@ -25,7 +25,7 @@ function RootNavigator() {
       <AppStateMessage
         loading
         title="Securing your session"
-        message="Money Heist is checking your Supabase session before loading the app."
+        message="Money Heist is getting your account ready."
       />
     );
   }
@@ -34,7 +34,7 @@ function RootNavigator() {
     return (
       <AppScreen contentStyle={styles.profileErrorScreen}>
         <View style={styles.profileErrorCard}>
-          <AppText variant="title">Profile unavailable</AppText>
+          <AppText variant="title">We could not load your profile</AppText>
           <AppText tone="subtle">{profileError}</AppText>
           <AppButton onPress={() => void signOut()} title="Sign out" variant="secondary" />
         </View>

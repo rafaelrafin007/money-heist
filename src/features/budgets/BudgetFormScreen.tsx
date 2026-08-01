@@ -109,7 +109,7 @@ export function BudgetFormScreen({ budgetId, monthStart = getCurrentCalendarMont
   if (categories.error || budget.error) {
     return (
       <AppScreen>
-        <InlineState title="Budget unavailable" message={getMessage(categories.error ?? budget.error)} />
+        <InlineState title="We couldn't load this budget" message={getMessage(categories.error ?? budget.error)} />
       </AppScreen>
     );
   }
@@ -193,7 +193,7 @@ function formatMinorForInput(amountMinor: number) {
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Budget request failed.";
+  return error instanceof Error ? error.message : "We couldn't save this budget. Please try again.";
 }
 
 const styles = StyleSheet.create({

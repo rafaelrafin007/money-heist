@@ -44,5 +44,5 @@ export function toRepositoryError(error: unknown) {
     return new Error("Currency mismatch. Choose accounts with the same currency.");
   }
 
-  return new Error(message);
+  return new Error("We couldn't complete that action. Please try again.");
 }

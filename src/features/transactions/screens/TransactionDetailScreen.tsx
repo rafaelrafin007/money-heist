@@ -49,7 +49,7 @@ export function TransactionDetailScreen({ transactionId }: TransactionDetailScre
   if (transaction.isLoading) {
     return (
       <AppScreen>
-        <InlineState title="Loading transaction" message="Fetching this transaction." />
+        <InlineState title="Loading transaction" message="Getting transaction details." />
       </AppScreen>
     );
   }
@@ -61,7 +61,7 @@ export function TransactionDetailScreen({ transactionId }: TransactionDetailScre
           actionLabel="Back to transactions"
           message={transaction.error instanceof Error ? transaction.error.message : "This transaction could not be loaded."}
           onAction={() => router.replace("/transactions")}
-          title="Transaction unavailable"
+          title="We couldn't load this transaction"
         />
       </AppScreen>
     );

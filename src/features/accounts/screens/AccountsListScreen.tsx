@@ -29,14 +29,14 @@ export function AccountsListScreen() {
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <AppText tone="subtle" variant="label">
-            Real Supabase data
+            Balances
           </AppText>
           <AppText variant="title">Accounts</AppText>
         </View>
         <AppButton onPress={() => router.push("/accounts/new")} title="Add" />
       </View>
 
-      {isLoading ? <InlineState title="Loading accounts" message="Fetching your authenticated finance records." /> : null}
+      {isLoading ? <InlineState title="Loading accounts" message="Getting your account balances." /> : null}
       {error ? (
         <InlineState
           actionLabel="Retry"
@@ -46,14 +46,14 @@ export function AccountsListScreen() {
             void categories.refetch();
             void transactions.refetch();
           }}
-          title="Accounts unavailable"
+          title="We couldn't load your accounts"
         />
       ) : null}
 
       {!isLoading && !error && balances.length === 0 ? (
         <InlineState
           actionLabel="Create first account"
-          message="Start by creating a cash, bank, wallet, savings, credit-card or loan account. No demo balances are mixed into this view."
+          message="Add your first account to start tracking your money."
           onAction={() => router.push("/accounts/new")}
           title="No accounts yet"
         />
@@ -87,7 +87,7 @@ export function AccountsListScreen() {
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "The accounts request failed.";
+  return error instanceof Error ? error.message : "We couldn't load your accounts. Please try again.";
 }
 
 const styles = StyleSheet.create({

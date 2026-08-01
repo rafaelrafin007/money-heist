@@ -44,9 +44,9 @@ export function PlanningScreen() {
     setMessage(undefined);
     try {
       await upsert.mutateAsync(effectiveValues);
-      setMessage("Planning assumptions saved.");
+      setMessage("Monthly plan saved.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Planning assumptions could not be saved.");
+      setMessage(error instanceof Error ? error.message : "We couldn't save your monthly plan. Please try again.");
     }
   }
 
@@ -68,8 +68,8 @@ export function PlanningScreen() {
   return (
     <AppScreen scroll contentStyle={styles.screenContent}>
       <View style={styles.header}>
-        <AppText tone="subtle" variant="label">User-entered estimates</AppText>
-        <AppText variant="title">Monthly planning</AppText>
+        <AppText tone="subtle" variant="label">User estimates</AppText>
+        <AppText variant="title">Monthly plan</AppText>
       </View>
 
       <View style={styles.monthControls}>
@@ -81,13 +81,13 @@ export function PlanningScreen() {
         <AppButton variant="secondary" onPress={() => changeMonth(1)} title="Next" />
       </View>
 
-      {plan.isLoading ? <InlineState title="Loading plan" message="Fetching monthly planning assumptions." /> : null}
-      {plan.error ? <InlineState title="Plan unavailable" message={getMessage(plan.error)} /> : null}
+      {plan.isLoading ? <InlineState title="Loading plan" message="Getting your monthly plan." /> : null}
+      {plan.error ? <InlineState title="We couldn't load your monthly plan" message={getMessage(plan.error)} /> : null}
 
       {!plan.isLoading && !plan.error ? (
         <View style={styles.card}>
           <AppText tone="subtle" variant="caption">
-            These are manual estimates. Recurring bills and automatic obligation detection are not implemented yet.
+            These are your estimates for the month. Use them to calculate potential savings.
           </AppText>
 
           <AppTextInput
@@ -147,7 +147,7 @@ function formatMinorForInput(amountMinor: number) {
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Planning request failed.";
+  return error instanceof Error ? error.message : "We couldn't load your monthly plan. Please try again.";
 }
 
 const styles = StyleSheet.create({

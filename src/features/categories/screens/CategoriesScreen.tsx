@@ -50,7 +50,7 @@ export function CategoriesScreen() {
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <AppText tone="subtle" variant="label">
-            Real Supabase data
+            Organize transactions
           </AppText>
           <AppText variant="title">Categories</AppText>
         </View>
@@ -68,7 +68,7 @@ export function CategoriesScreen() {
           actionLabel="Retry"
           message={getMessage(categories.error)}
           onAction={() => void categories.refetch()}
-          title="Categories unavailable"
+          title="We couldn't load your categories"
         />
       ) : null}
 
@@ -202,7 +202,7 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "The category request failed.";
+  return error instanceof Error ? error.message : "We couldn't load your categories. Please try again.";
 }
 
 const styles = StyleSheet.create({

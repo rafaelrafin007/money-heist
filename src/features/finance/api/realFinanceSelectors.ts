@@ -16,9 +16,21 @@ import {
 } from "@/src/features/finance/calculations";
 import { addMinor } from "@/src/features/finance/money";
 import { calculateRealPotentialSavings } from "@/src/features/planning/potentialSavings";
-import type { TransactionView } from "@/src/features/finance/selectors";
 import type { Account, Budget, Category, FinanceDataset, MonthlyFinancePlan, SavingsGoal, Transaction } from "@/src/features/finance/types";
 import { isAssetAccount } from "@/src/features/finance/validation";
+
+export type TransactionView = {
+  id: string;
+  type: Transaction["type"];
+  title: string;
+  detail: string;
+  accountName: string;
+  destinationAccountName?: string;
+  occurredAt: string;
+  amountMinor: number;
+  currency: string;
+  status?: Transaction["status"];
+};
 
 export function buildFinanceDataset(
   accounts: Account[],

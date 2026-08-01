@@ -5,23 +5,21 @@ import { Alert, Platform, StyleSheet, View } from "react-native";
 import { AppButton } from "@/src/components/AppButton";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
-import { useSettingsOverview } from "@/src/features/finance/hooks";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { theme } from "@/src/theme";
 
 export function SettingsScreen() {
-  const settings = useSettingsOverview();
   const { profile, signOut, user } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>();
-  const rows = [
-    { label: "Currency", value: settings.currency },
-    { label: "Financial month", value: settings.financialMonth },
-    { label: "Authentication", value: user ? "Connected" : "Not connected" },
-    { label: "Signed in as", value: user?.email ?? "Unavailable" },
-    { label: "Profile", value: profile?.fullName ?? "Profile loading" },
-    { label: "Finance data", value: settings.financeData },
-    { label: "Cloud finance sync", value: settings.cloudFinanceSync },
+  const profileRows = [
+    { label: "Full name", value: profile?.fullName ?? "Add your name" },
+    { label: "Email", value: user?.email ?? "No email on file" },
+  ];
+  const preferenceRows = [
+    { label: "Default currency", value: profile?.currencyCode ?? "BDT" },
+    { label: "Time zone", value: profile?.timezone ?? "Asia/Dhaka" },
+    { label: "Financial month", value: `Starts on day ${profile?.financialMonthStartDay ?? 1}` },
   ];
 
   function confirmSignOut() {
@@ -73,13 +71,24 @@ export function SettingsScreen() {
     <AppScreen scroll contentStyle={styles.screenContent}>
       <View style={styles.header}>
         <AppText tone="subtle" variant="label">
-          App status
+          Profile and preferences
         </AppText>
         <AppText variant="title">Settings</AppText>
       </View>
 
+      <AppText style={styles.sectionTitle} variant="label">Profile</AppText>
       <View style={styles.card}>
-        {rows.map((row) => (
+        {profileRows.map((row) => (
+          <View key={row.label} style={styles.row}>
+            <AppText tone="subtle">{row.label}</AppText>
+            <AppText variant="label">{row.value}</AppText>
+          </View>
+        ))}
+      </View>
+
+      <AppText style={styles.sectionTitle} variant="label">Preferences</AppText>
+      <View style={styles.card}>
+        {preferenceRows.map((row) => (
           <View key={row.label} style={styles.row}>
             <AppText tone="subtle">{row.label}</AppText>
             <AppText variant="label">{row.value}</AppText>
@@ -88,18 +97,18 @@ export function SettingsScreen() {
       </View>
 
       <View style={styles.actionCard}>
-        <AppText variant="label">Finance setup</AppText>
+        <AppText variant="label">Money setup</AppText>
         <AppButton onPress={() => router.push("/accounts" as Href)} title="Manage accounts" variant="secondary" />
         <AppButton onPress={() => router.push("/categories" as Href)} title="Manage categories" variant="secondary" />
         <AppButton onPress={() => router.push("/budgets" as Href)} title="Manage budgets" variant="secondary" />
         <AppButton onPress={() => router.push("/savings" as Href)} title="Manage savings goals" variant="secondary" />
-        <AppButton onPress={() => router.push("/planning" as Href)} title="Planning assumptions" variant="secondary" />
+        <AppButton onPress={() => router.push("/planning" as Href)} title="Monthly plan" variant="secondary" />
       </View>
 
       <View style={styles.actionCard}>
-        <AppText variant="label">Session</AppText>
+        <AppText variant="label">Security</AppText>
         <AppText tone="subtle" variant="caption">
-          Logging out clears the Supabase session on this device and removes cached finance data from this app session.
+          Log out when you are done using this device.
         </AppText>
         {statusMessage ? (
           <AppText style={styles.errorNotice} tone="danger" variant="caption">
@@ -134,6 +143,10 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderSubtle,
     backgroundColor: theme.colors.surface,
     overflow: "hidden",
+  },
+  sectionTitle: {
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
   },
   row: {
     flexDirection: "row",

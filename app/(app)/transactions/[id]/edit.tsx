@@ -12,7 +12,7 @@ export default function EditTransactionRoute() {
   if (transaction.isLoading) {
     return (
       <AppScreen>
-        <InlineState title="Loading transaction" message="Fetching transaction details." />
+        <InlineState title="Loading transaction" message="Getting transaction details." />
       </AppScreen>
     );
   }
@@ -20,7 +20,7 @@ export default function EditTransactionRoute() {
   if (!transaction.data) {
     return (
       <AppScreen>
-        <InlineState title="Transaction unavailable" message="This transaction could not be loaded." />
+        <InlineState title="We couldn't load this transaction" message="Please go back and try again." />
       </AppScreen>
     );
   }

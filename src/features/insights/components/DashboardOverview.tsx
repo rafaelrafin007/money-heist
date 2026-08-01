@@ -61,12 +61,12 @@ export function DashboardOverview() {
     <AppScreen scroll>
       <View style={styles.header}>
         <AppText tone="subtle" variant="label">
-          {overview?.monthLabel ?? "Dashboard"} - real Supabase data
+          {overview?.monthLabel ?? "Dashboard"}
         </AppText>
         <AppText variant="title">Financial overview</AppText>
       </View>
 
-      {isLoading ? <InlineState title="Loading dashboard" message="Calculating totals from your authenticated records." /> : null}
+      {isLoading ? <InlineState title="Loading dashboard" message="Getting your financial overview." /> : null}
       {error ? (
         <InlineState
           actionLabel="Retry"
@@ -79,16 +79,16 @@ export function DashboardOverview() {
             void goals.refetch();
             void monthlyPlan.refetch();
           }}
-          title="Dashboard unavailable"
+          title="We couldn't load your dashboard"
         />
       ) : null}
 
       {overview && accounts.data?.length === 0 ? (
         <InlineState
           actionLabel="Create first account"
-          message="Your totals are zero because no accounts or transactions exist yet. Start by initializing categories and creating your first account."
+          message="Your totals are zero because you have not added accounts or transactions yet. Create your first account to start tracking your money."
           onAction={() => router.push("/accounts/new")}
-          title="Welcome to your real ledger"
+          title="Welcome to Money Heist"
         />
       ) : null}
 
@@ -104,7 +104,7 @@ export function DashboardOverview() {
               {formatMinorAsCurrency(overview.liquidBalanceMinor, overview.currency)}
             </AppText>
             <AppText style={styles.balanceCopy} tone="inverse" variant="caption">
-              Calculated from your accounts and active Supabase transactions. Transfers are excluded from income and expenses.
+              Available across your active accounts. Transfers are not counted as income or expenses.
             </AppText>
           </View>
 
@@ -120,7 +120,7 @@ export function DashboardOverview() {
                 Planning insights
               </AppText>
               <AppText tone="subtle" variant="caption">
-                Real budgets and linked goals
+                Budgets and goals
               </AppText>
             </View>
             <View style={styles.metricGridCompact}>
@@ -142,7 +142,7 @@ export function DashboardOverview() {
                 {overview.exceededBudgets.length} exceeded budget{overview.exceededBudgets.length === 1 ? "" : "s"} and {overview.nearLimitBudgets.length} near limit.
               </AppText>
             ) : null}
-            <AppButton onPress={() => router.push("/planning" as Href)} title="Edit planning assumptions" variant="secondary" />
+            <AppButton onPress={() => router.push("/planning" as Href)} title="Edit monthly plan" variant="secondary" />
           </View>
 
           <View style={styles.sectionHeader}>
@@ -209,7 +209,7 @@ function formatTransactionAmount(type: string, amountMinor: number, currency: st
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "The dashboard request failed.";
+  return error instanceof Error ? error.message : "We couldn't load your dashboard. Please try again.";
 }
 
 const styles = StyleSheet.create({

@@ -59,7 +59,7 @@ export function BudgetsScreen() {
       <View style={styles.header}>
         <View style={styles.headerCopy}>
           <AppText tone="subtle" variant="label">
-            Real Supabase data
+            Plan your spending
           </AppText>
           <AppText variant="title">Monthly budgets</AppText>
         </View>
@@ -78,7 +78,7 @@ export function BudgetsScreen() {
         <AppButton variant="ghost" onPress={() => setMonthStart(currentMonthStart)} title="Return to current month" />
       ) : null}
 
-      {isLoading ? <InlineState title="Loading budgets" message="Fetching budgets and calculating matching expenses." /> : null}
+      {isLoading ? <InlineState title="Loading budgets" message="Getting your monthly budgets." /> : null}
       {error ? (
         <InlineState
           actionLabel="Retry"
@@ -89,7 +89,7 @@ export function BudgetsScreen() {
             void transactions.refetch();
             void budgets.refetch();
           }}
-          title="Budgets unavailable"
+          title="We couldn't load your budgets"
         />
       ) : null}
 
@@ -111,7 +111,7 @@ export function BudgetsScreen() {
           {summaries.length === 0 ? (
             <InlineState
               actionLabel="Create first budget"
-              message="No active budgets exist for this month. You can create one or copy the previous month if it has budgets."
+              message="Create a budget to plan your spending."
               onAction={() => router.push(`/budgets/new?monthStart=${monthStart}` as Href)}
               title="No budgets for this month"
             />
@@ -176,7 +176,7 @@ function SummaryCard({ label, value, tone = "default" }: { label: string; value:
 }
 
 function getMessage(error: unknown) {
-  return error instanceof Error ? error.message : "The budget request failed.";
+  return error instanceof Error ? error.message : "We couldn't load your budgets. Please try again.";
 }
 
 const styles = StyleSheet.create({

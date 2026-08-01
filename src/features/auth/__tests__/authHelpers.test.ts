@@ -29,13 +29,13 @@ describe("auth environment validation", () => {
     ).toBe("anon-key");
   });
 
-  it("rejects missing Supabase values", () => {
-    expect(() => validateSupabaseEnvironment({})).toThrow(/EXPO_PUBLIC_SUPABASE_URL/);
+  it("rejects missing configuration values with safe messages", () => {
+    expect(() => validateSupabaseEnvironment({})).toThrow(/App configuration is incomplete/);
     expect(() =>
       validateSupabaseEnvironment({
         EXPO_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
       }),
-    ).toThrow(/EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY/);
+    ).toThrow(/publishable key/);
   });
 });
 
