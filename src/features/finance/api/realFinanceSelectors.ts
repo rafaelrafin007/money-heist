@@ -2,28 +2,38 @@ import { getCurrentCalendarMonth, monthLabel } from "@/src/features/finance/date
 import {
   calculateAccountBalances,
   calculateActualSavingsContribution,
+  calculateBudgetSummaries,
   calculateExpenseTotal,
   calculateIncomeTotal,
   calculateNetCashFlow,
   calculateNetWorth,
+  calculateSavingsGoalProgress,
+  calculateTotalRemainingVariableBudget,
   calculateTotalAssets,
   calculateTotalLiabilities,
   calculateTotalSavingsBalance,
   getRecentActiveTransactions,
 } from "@/src/features/finance/calculations";
 import { addMinor } from "@/src/features/finance/money";
+import { calculateRealPotentialSavings } from "@/src/features/planning/potentialSavings";
 import type { TransactionView } from "@/src/features/finance/selectors";
-import type { Account, Category, FinanceDataset, Transaction } from "@/src/features/finance/types";
+import type { Account, Budget, Category, FinanceDataset, MonthlyFinancePlan, SavingsGoal, Transaction } from "@/src/features/finance/types";
 import { isAssetAccount } from "@/src/features/finance/validation";
 
-export function buildFinanceDataset(accounts: Account[], categories: Category[], transactions: Transaction[]): FinanceDataset {
+export function buildFinanceDataset(
+  accounts: Account[],
+  categories: Category[],
+  transactions: Transaction[],
+  budgets: Budget[] = [],
+  savingsGoals: SavingsGoal[] = [],
+): FinanceDataset {
   return {
     currency: accounts[0]?.currency ?? "BDT",
     accounts,
     categories,
     transactions,
-    budgets: [],
-    savingsGoals: [],
+    budgets,
+    savingsGoals,
     forecast: {
       currency: accounts[0]?.currency ?? "BDT",
       availableLiquidCashMinor: 0,
@@ -41,10 +51,23 @@ export function getRealDashboardOverview(
   categories: Category[],
   transactions: Transaction[],
   referenceDate = new Date(),
+  options: { budgets?: Budget[]; savingsGoals?: SavingsGoal[]; monthlyPlan?: MonthlyFinancePlan | null } = {},
 ) {
-  const dataset = buildFinanceDataset(accounts, categories, transactions);
+  const dataset = buildFinanceDataset(accounts, categories, transactions, options.budgets ?? [], options.savingsGoals ?? []);
   const range = getCurrentCalendarMonth(referenceDate);
   const balances = calculateAccountBalances(dataset);
+  const budgetSummaries = calculateBudgetSummaries(dataset);
+  const goalProgress = calculateSavingsGoalProgress(dataset, referenceDate);
+  const planning = calculateRealPotentialSavings({
+    accounts,
+    categories,
+    transactions,
+    budgets: options.budgets ?? [],
+    monthlyPlan: options.monthlyPlan ?? null,
+    currency: dataset.currency,
+    range,
+    referenceDate,
+  });
   const liquidBalanceMinor = balances
     .filter(({ account }) => !account.isArchived && isAssetAccount(account) && !account.isSavings)
     .reduce((total, { balanceMinor }) => addMinor(total, Math.max(0, balanceMinor)), 0);
@@ -62,6 +85,13 @@ export function getRealDashboardOverview(
     totalAssetsMinor: calculateTotalAssets(dataset),
     totalLiabilitiesMinor: calculateTotalLiabilities(dataset),
     netWorthMinor: calculateNetWorth(dataset),
+    budgetRemainingMinor: calculateTotalRemainingVariableBudget(budgetSummaries),
+    dailyBudgetAllowanceMinor: planning.dailyBudgetAllowanceMinor,
+    budgetSummaries,
+    nearLimitBudgets: budgetSummaries.filter((summary) => summary.status === "warning"),
+    exceededBudgets: budgetSummaries.filter((summary) => summary.status === "exceeded"),
+    goalProgress,
+    potentialSavings: planning,
     recentTransactions: getTransactionViews(getRecentActiveTransactions(dataset, 6), accounts, categories),
   };
 }

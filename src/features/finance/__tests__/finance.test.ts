@@ -89,6 +89,7 @@ function baseDataset(transactions: Transaction[] = []): FinanceDataset {
         periodEnd: range.end,
         limitMinor: 50000,
         currency,
+        status: "active",
       },
     ],
     savingsGoals: [

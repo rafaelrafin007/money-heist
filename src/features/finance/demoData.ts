@@ -239,6 +239,7 @@ const budgets: Budget[] = [
     periodEnd: month.end,
     limitMinor: 2200000,
     currency,
+    status: "active",
   },
   {
     id: "budget-transport",
@@ -247,6 +248,7 @@ const budgets: Budget[] = [
     periodEnd: month.end,
     limitMinor: 900000,
     currency,
+    status: "active",
   },
   {
     id: "budget-shopping",
@@ -255,6 +257,7 @@ const budgets: Budget[] = [
     periodEnd: month.end,
     limitMinor: 1800000,
     currency,
+    status: "active",
   },
   {
     id: "budget-entertainment",
@@ -263,6 +266,7 @@ const budgets: Budget[] = [
     periodEnd: month.end,
     limitMinor: 700000,
     currency,
+    status: "active",
   },
 ];
 

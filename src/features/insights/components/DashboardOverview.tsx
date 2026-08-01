@@ -1,13 +1,18 @@
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
+import { AppButton } from "@/src/components/AppButton";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
+import { useBudgetsForMonth } from "@/src/features/budgets/api/budgetsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
 import { getRealDashboardOverview } from "@/src/features/finance/api/realFinanceSelectors";
 import { InlineState } from "@/src/features/finance/components/InlineState";
+import { getCurrentCalendarMonth } from "@/src/features/finance/dates";
 import { formatMinorAsCurrency } from "@/src/features/finance/money";
+import { useMonthlyFinancePlan } from "@/src/features/planning/api/monthlyFinancePlansHooks";
+import { useSavingsGoals } from "@/src/features/savings/api/savingsGoalsHooks";
 import { useTransactions } from "@/src/features/transactions/api/transactionsHooks";
 import { theme } from "@/src/theme";
 
@@ -21,14 +26,22 @@ const metricToneMap: Record<MetricTone, { color: string; backgroundColor: string
 };
 
 export function DashboardOverview() {
+  const range = getCurrentCalendarMonth();
   const accounts = useAccounts();
   const categories = useCategories();
   const transactions = useTransactions();
-  const isLoading = accounts.isLoading || categories.isLoading || transactions.isLoading;
-  const error = accounts.error ?? categories.error ?? transactions.error;
+  const budgets = useBudgetsForMonth(range.start);
+  const goals = useSavingsGoals();
+  const monthlyPlan = useMonthlyFinancePlan(range.start, "BDT");
+  const isLoading = accounts.isLoading || categories.isLoading || transactions.isLoading || budgets.isLoading || goals.isLoading || monthlyPlan.isLoading;
+  const error = accounts.error ?? categories.error ?? transactions.error ?? budgets.error ?? goals.error ?? monthlyPlan.error;
   const overview =
-    accounts.data && categories.data && transactions.data
-      ? getRealDashboardOverview(accounts.data, categories.data, transactions.data)
+    accounts.data && categories.data && transactions.data && budgets.data && goals.data
+      ? getRealDashboardOverview(accounts.data, categories.data, transactions.data, new Date(), {
+          budgets: budgets.data,
+          savingsGoals: goals.data,
+          monthlyPlan: monthlyPlan.data ?? null,
+        })
       : null;
 
   const metrics = overview
@@ -61,6 +74,9 @@ export function DashboardOverview() {
             void accounts.refetch();
             void categories.refetch();
             void transactions.refetch();
+            void budgets.refetch();
+            void goals.refetch();
+            void monthlyPlan.refetch();
           }}
           title="Dashboard unavailable"
         />
@@ -96,12 +112,34 @@ export function DashboardOverview() {
           </View>
 
           <View style={styles.forecastNote}>
-            <AppText tone="subtle" variant="label">
-              Potential savings unavailable
-            </AppText>
+            <View style={styles.sectionHeaderCompact}>
+              <AppText tone="subtle" variant="label">
+                Planning insights
+              </AppText>
+              <AppText tone="subtle" variant="caption">
+                Real budgets and linked goals
+              </AppText>
+            </View>
+            <View style={styles.metricGridCompact}>
+              <MetricCard currency={overview.currency} metric={{ label: "Budget remaining", valueMinor: overview.budgetRemainingMinor, tone: "default" }} />
+              <MetricCard currency={overview.currency} metric={{ label: "Daily allowance", valueMinor: overview.dailyBudgetAllowanceMinor, tone: "default" }} />
+              <MetricCard currency={overview.currency} metric={{ label: "Potential savings", valueMinor: overview.potentialSavings.amountMinor, tone: overview.potentialSavings.status === "complete" ? "success" : "warning" }} />
+              <MetricCard currency={overview.currency} metric={{ label: "Goal monthly need", valueMinor: Math.max(0, ...overview.goalProgress.map((goal) => goal.requiredMonthlyContributionMinor)), tone: "default" }} />
+            </View>
             <AppText tone="subtle" variant="caption">
-              Budgets, obligations and savings goals are not persisted yet, so potential savings is not included in real totals.
+              Based on available cash, expected income, remaining budgets, upcoming expenses, debt obligations, and your safety buffer.
             </AppText>
+            {overview.potentialSavings.status === "incomplete" ? (
+              <AppText style={styles.warningText} variant="caption">
+                Complete monthly planning assumptions to calculate potential savings.
+              </AppText>
+            ) : null}
+            {overview.nearLimitBudgets.length || overview.exceededBudgets.length ? (
+              <AppText style={overview.exceededBudgets.length ? styles.dangerText : styles.warningText} variant="caption">
+                {overview.exceededBudgets.length} exceeded budget{overview.exceededBudgets.length === 1 ? "" : "s"} and {overview.nearLimitBudgets.length} near limit.
+              </AppText>
+            ) : null}
+            <AppButton onPress={() => router.push("/planning" as Href)} title="Edit planning assumptions" variant="secondary" />
           </View>
 
           <View style={styles.sectionHeader}>
@@ -196,6 +234,10 @@ const styles = StyleSheet.create({
   metricMarker: { height: 28, width: 28, borderRadius: theme.radius.pill, alignItems: "center", justifyContent: "center" },
   metricDot: { height: 10, width: 10, borderRadius: theme.radius.pill },
   forecastNote: { gap: theme.spacing.xs, marginTop: theme.spacing.lg, padding: theme.spacing.md, borderRadius: theme.radius.md, backgroundColor: theme.colors.warningSurface },
+  sectionHeaderCompact: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: theme.spacing.md },
+  metricGridCompact: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginTop: theme.spacing.sm },
+  warningText: { color: theme.colors.warning },
+  dangerText: { color: theme.colors.danger },
   sectionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: theme.spacing.md, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md },
   listCard: { borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface, overflow: "hidden" },
   transactionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md, padding: theme.spacing.md, borderBottomWidth: 1, borderBottomColor: theme.colors.borderSubtle },

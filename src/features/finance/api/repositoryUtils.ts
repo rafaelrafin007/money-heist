@@ -24,6 +24,14 @@ export function toRepositoryError(error: unknown) {
     return new Error("A similar record already exists.");
   }
 
+  if (lower.includes("linked savings account") || lower.includes("savings account")) {
+    return new Error("Choose an active savings account that is available for this goal.");
+  }
+
+  if (lower.includes("budget")) {
+    return new Error("The budget could not be saved. Check the category, month and currency.");
+  }
+
   if (lower.includes("row-level security") || lower.includes("permission denied")) {
     return new Error("You do not have permission to access that record.");
   }

@@ -96,6 +96,10 @@ export function validateBudget(budget: Budget, categoriesById: Map<string, Categ
     throw new Error(`Budget ${budget.id} has an invalid period.`);
   }
 
+  if (budget.status !== "active" && budget.status !== "archived") {
+    throw new Error(`Budget ${budget.id} has an invalid status.`);
+  }
+
   const category = categoriesById.get(budget.categoryId);
 
   if (!category) {
@@ -119,8 +123,18 @@ export function validateSavingsGoal(
     assertNonNegativeMinorUnits(goal.currentAmountMinor, `Savings goal ${goal.id} current amount`);
   }
 
-  if (goal.linkedAccountId && !accountsById.has(goal.linkedAccountId)) {
-    throw new Error(`Savings goal ${goal.id} references missing account ${goal.linkedAccountId}.`);
+  if (goal.linkedAccountId) {
+    const linkedAccount = accountsById.get(goal.linkedAccountId);
+
+    if (!linkedAccount) {
+      throw new Error(`Savings goal ${goal.id} references missing account ${goal.linkedAccountId}.`);
+    }
+
+    if (!isAssetAccount(linkedAccount) || !linkedAccount.isSavings) {
+      throw new Error(`Savings goal ${goal.id} must link to a savings asset account.`);
+    }
+
+    assertSameCurrency(goal.currency, linkedAccount.currency, `Savings goal ${goal.id}`);
   }
 }
 

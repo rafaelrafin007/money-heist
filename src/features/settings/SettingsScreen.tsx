@@ -91,6 +91,9 @@ export function SettingsScreen() {
         <AppText variant="label">Finance setup</AppText>
         <AppButton onPress={() => router.push("/accounts" as Href)} title="Manage accounts" variant="secondary" />
         <AppButton onPress={() => router.push("/categories" as Href)} title="Manage categories" variant="secondary" />
+        <AppButton onPress={() => router.push("/budgets" as Href)} title="Manage budgets" variant="secondary" />
+        <AppButton onPress={() => router.push("/savings" as Href)} title="Manage savings goals" variant="secondary" />
+        <AppButton onPress={() => router.push("/planning" as Href)} title="Planning assumptions" variant="secondary" />
       </View>
 
       <View style={styles.actionCard}>

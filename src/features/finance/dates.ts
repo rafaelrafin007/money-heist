@@ -19,6 +19,28 @@ export function getCurrentCalendarMonth(referenceDate = new Date()): DateRange {
   };
 }
 
+export function getCalendarMonthRange(monthStart: string): DateRange {
+  assertFirstDayOfMonth(monthStart);
+  const [year, month] = monthStart.split("-").map(Number);
+  return {
+    start: monthStart,
+    end: toIsoDate(new Date(year, month, 0)),
+  };
+}
+
+export function shiftCalendarMonth(monthStart: string, offsetMonths: number) {
+  assertFirstDayOfMonth(monthStart);
+  const [year, month] = monthStart.split("-").map(Number);
+  return toIsoDate(new Date(year, month - 1 + offsetMonths, 1));
+}
+
+export function assertFirstDayOfMonth(value: string) {
+  if (!/^\d{4}-\d{2}-01$/.test(value) || Number.isNaN(new Date(`${value}T00:00:00`).getTime())) {
+    throw new Error("Month must be a valid first-day-of-month date.");
+  }
+  return value;
+}
+
 export function isIsoDateInRange(date: string, range: DateRange) {
   return date >= range.start && date <= range.end;
 }

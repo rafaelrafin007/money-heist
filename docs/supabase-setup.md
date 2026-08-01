@@ -37,10 +37,11 @@ Restart Expo after changing `.env` because Expo reads public environment variabl
 3. Open each migration in timestamp order:
    - `supabase/migrations/20260731020000_initial_auth_finance_foundation.sql`
    - `supabase/migrations/20260731093000_default_categories_rpc.sql`
+   - `supabase/migrations/20260801090000_planning_budget_savings_layer.sql`
 4. Paste the full SQL for one migration into the editor.
 5. Run it once against the target project before applying the next migration.
 
-The migration creates profiles, accounts, categories, transactions, budgets and savings goals. It enables RLS on every user-owned table.
+The migrations create profiles, accounts, categories, transactions, budgets, savings goals and monthly finance plans. They enable RLS on every user-owned table.
 
 ## Authentication settings
 
@@ -79,9 +80,36 @@ Test with two separate email accounts.
 
 No policies use `USING (true)` for user-owned data, and anonymous users are not granted read access by RLS.
 
-## Demo finance data
+## Planning layer
 
-The dashboard, accounts and transactions screens use real authenticated Supabase data. Budgets and savings goals are not persisted yet and are shown as unavailable/demo-only areas.
+Budgets, savings goals and monthly planning assumptions are persisted in Supabase.
+
+Budget uniqueness:
+
+- One active budget can exist for the same user, expense category, currency and exact calendar-month period.
+- Archived budgets remain historical records and do not count as active planning.
+
+Budget copying:
+
+```sql
+select public.copy_budgets_from_month('2026-07-01', '2026-08-01');
+```
+
+The RPC uses `auth.uid()`, accepts no user ID, copies only active budgets from the authenticated user, and skips duplicates.
+
+Savings-goal source of truth:
+
+- Each active or paused goal links to one active savings account.
+- One savings account can be linked to only one active or paused goal.
+- Goal progress is derived from the linked account's calculated balance.
+- `current_amount_minor` remains in the database for compatibility, but the app does not use it as an independent manual balance.
+- Add money or withdraw money by creating transfer transactions; do not update goal progress directly.
+
+Monthly planning assumptions:
+
+- `monthly_finance_plans` stores manually entered expected remaining income, upcoming fixed expenses, debt obligations and safety buffer.
+- Recurring bills are not implemented yet, so these values are user estimates.
+- Potential savings is calculated as available non-savings liquid cash plus expected remaining income, minus upcoming fixed expenses, remaining active budgets, debt obligations and safety buffer. Negative results display as zero.
 
 ## Default categories
 
@@ -107,7 +135,15 @@ The RPC uses `auth.uid()`, accepts no user ID, and inserts only missing active c
 10. Confirm account balances update after every transaction.
 11. Open a transaction detail screen and edit it.
 12. Cancel a transaction and confirm it remains in history but leaves dashboard totals.
-13. Refresh web or reload Expo Go and confirm records persist.
+13. Create current-month budgets from Budgets.
+14. Confirm matching expenses update budget usage and transfers do not.
+15. Copy previous month's budgets from the Budgets screen and confirm duplicates are not created.
+16. Create a savings account and then create a savings goal linked to it.
+17. Transfer money into the linked savings account and confirm goal progress increases.
+18. Transfer money out and confirm goal progress decreases.
+19. Open Planning and enter monthly estimates.
+20. Confirm dashboard potential-savings breakdown updates and savings-account balances are excluded from available cash.
+21. Refresh web or reload Expo Go and confirm records persist.
 
 ## Two-user security check
 
@@ -116,6 +152,7 @@ The RPC uses `auth.uid()`, accepts no user ID, and inserts only missing active c
 3. Sign out and sign in as user B.
 4. Confirm user B sees no user A finance records.
 5. Attempt direct inserts through the API or SQL impersonating user B while referencing user A account/category IDs. Composite ownership foreign keys should reject the records.
+6. Repeat for budgets, savings goals and monthly finance plans. User B must not read, update or link to user A planning records.
 
 ## Development cache
 

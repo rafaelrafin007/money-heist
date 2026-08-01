@@ -54,6 +54,8 @@ export type PotentialSavingsResult = {
   breakdown: PotentialSavingsForecastInput;
 };
 
+export const BUDGET_WARNING_THRESHOLD_PERCENT = 75;
+
 export function calculateAccountBalances(dataset: FinanceDataset): AccountBalance[] {
   validateFinanceDataset(dataset);
   const balances = new Map<string, number>();
@@ -175,7 +177,9 @@ export function calculateBudgetSummaries(dataset: FinanceDataset): BudgetSummary
   validateFinanceDataset(dataset);
   const categoriesById = new Map(dataset.categories.map((category) => [category.id, category]));
 
-  return dataset.budgets.map((budget) => {
+  return dataset.budgets
+    .filter((budget) => budget.status !== "archived")
+    .map((budget) => {
     const category = categoriesById.get(budget.categoryId);
 
     if (!category) {
@@ -195,7 +199,7 @@ export function calculateBudgetSummaries(dataset: FinanceDataset): BudgetSummary
     const utilizationPercent = Math.round((spentMinor / budget.limitMinor) * 100);
     const isExceeded = spentMinor > budget.limitMinor;
     const overspentMinor = isExceeded ? subtractMinor(spentMinor, budget.limitMinor) : 0;
-    const status = isExceeded ? "exceeded" : utilizationPercent >= 80 ? "warning" : "safe";
+    const status = isExceeded ? "exceeded" : utilizationPercent >= BUDGET_WARNING_THRESHOLD_PERCENT ? "warning" : "safe";
 
     return {
       budget,
@@ -210,6 +214,27 @@ export function calculateBudgetSummaries(dataset: FinanceDataset): BudgetSummary
   });
 }
 
+export function calculateTotalBudgetLimit(summaries: BudgetSummary[]) {
+  return summaries.reduce((total, summary) => addMinor(total, summary.budget.limitMinor), 0);
+}
+
+export function calculateTotalBudgetSpent(summaries: BudgetSummary[]) {
+  return summaries.reduce((total, summary) => addMinor(total, summary.spentMinor), 0);
+}
+
+export function calculateTotalRemainingVariableBudget(summaries: BudgetSummary[]) {
+  return summaries.reduce((total, summary) => addMinor(total, Math.max(0, summary.remainingMinor)), 0);
+}
+
+export function calculateDailyRemainingBudgetAllowance(summaries: BudgetSummary[], range: DateRange, referenceDate = new Date()) {
+  const daysRemaining = daysRemainingInPeriod(range, referenceDate);
+  if (daysRemaining <= 0) {
+    return 0;
+  }
+
+  return Math.floor(calculateTotalRemainingVariableBudget(summaries) / daysRemaining);
+}
+
 export function calculateSavingsGoalProgress(
   dataset: FinanceDataset,
   asOf = new Date(),
@@ -222,9 +247,9 @@ export function calculateSavingsGoalProgress(
 
   return dataset.savingsGoals.map((goal) => {
     const linkedBalance = goal.linkedAccountId ? balancesByAccountId.get(goal.linkedAccountId) : undefined;
-    const currentAmountMinor = Math.max(0, goal.currentAmountMinor ?? linkedBalance ?? 0);
+    const currentAmountMinor = Math.max(0, linkedBalance ?? goal.currentAmountMinor ?? 0);
     const remainingMinor = Math.max(0, subtractMinor(goal.targetMinor, currentAmountMinor));
-    const progressPercent = goal.targetMinor <= 0 ? 100 : Math.min(100, Math.round((currentAmountMinor / goal.targetMinor) * 100));
+    const progressPercent = goal.targetMinor <= 0 ? 100 : Math.max(0, Math.round((currentAmountMinor / goal.targetMinor) * 100));
     const isAchieved = goal.status === "completed" || currentAmountMinor >= goal.targetMinor;
     const isOverdue = Boolean(goal.targetDate && goal.targetDate < today && !isAchieved);
     const daysRemaining = goal.targetDate

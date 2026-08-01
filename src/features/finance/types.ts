@@ -85,6 +85,7 @@ export type Budget = {
   periodEnd: string;
   limitMinor: number;
   currency: CurrencyCode;
+  status: "active" | "archived";
 };
 
 export type SavingsGoalStatus = "active" | "paused" | "completed" | "archived";
@@ -108,6 +109,19 @@ export type PotentialSavingsForecastInput = {
   remainingVariableBudgetMinor: number;
   debtObligationsMinor: number;
   safetyBufferMinor: number;
+};
+
+export type MonthlyFinancePlan = {
+  id: string;
+  monthStart: string;
+  currency: CurrencyCode;
+  expectedRemainingIncomeMinor: number;
+  upcomingFixedExpensesMinor: number;
+  debtObligationsMinor: number;
+  safetyBufferMinor: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type FinanceDataset = {

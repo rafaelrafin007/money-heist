@@ -1,4 +1,4 @@
-import { router, type Href } from "expo-router";
+import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -22,16 +22,21 @@ type TransactionFormScreenProps = {
 const transactionTypes: TransactionFormValues["type"][] = ["income", "expense", "transfer"];
 
 export function TransactionFormScreen({ transaction }: TransactionFormScreenProps) {
+  const params = useLocalSearchParams<{ type?: string; accountId?: string; destinationAccountId?: string }>();
   const accounts = useAccounts();
   const categories = useCategories();
   const create = useCreateTransaction();
   const update = useUpdateTransaction(transaction?.id ?? "", transaction);
   const [values, setValues] = useState<TransactionFormValues>(() => ({
-    type: transaction && transaction.type !== "adjustment" ? transaction.type : "expense",
+    type: transaction && transaction.type !== "adjustment"
+      ? transaction.type
+      : params.type === "income" || params.type === "expense" || params.type === "transfer"
+        ? params.type
+        : "expense",
     amount: transaction ? formatMinorForInput(transaction.amountMinor) : "",
     occurredAt: transaction?.occurredAt ?? new Date().toISOString().slice(0, 10),
-    accountId: transaction?.accountId ?? "",
-    destinationAccountId: transaction?.type === "transfer" ? transaction.destinationAccountId : "",
+    accountId: transaction?.accountId ?? params.accountId ?? "",
+    destinationAccountId: transaction?.type === "transfer" ? transaction.destinationAccountId : params.destinationAccountId ?? "",
     categoryId: transaction?.type === "income" || transaction?.type === "expense" ? transaction.categoryId : "",
     note: transaction?.note ?? "",
   }));

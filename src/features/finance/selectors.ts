@@ -145,7 +145,7 @@ export function getSettingsOverview(dataset: FinanceDataset = demoFinanceData) {
   return {
     currency: dataset.currency,
     financialMonth: "Calendar month",
-    financeData: "Demo mode",
-    cloudFinanceSync: "Not enabled yet",
+    financeData: "Supabase accounts, categories, transactions, budgets, savings goals and planning assumptions",
+    cloudFinanceSync: "Enabled for authenticated finance records",
   };
 }
