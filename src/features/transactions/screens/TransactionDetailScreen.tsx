@@ -1,10 +1,14 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
+import { MetricTile } from "@/src/components/MetricTile";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
 import { InlineState } from "@/src/features/finance/components/InlineState";
@@ -77,18 +81,29 @@ export function TransactionDetailScreen({ transactionId }: TransactionDetailScre
     currentTransaction.type === "income" || currentTransaction.type === "expense"
       ? categories.data?.find((item) => item.id === currentTransaction.categoryId)
       : undefined;
+  const visual = getTransactionVisual(currentTransaction.type);
 
   return (
-    <AppScreen scroll>
-      <View style={styles.header}>
-        <AppText tone={currentTransaction.status === "cancelled" ? "danger" : "subtle"} variant="label">
-          {currentTransaction.status}
-        </AppText>
-        <AppText variant="title">{currentTransaction.type}</AppText>
-      </View>
+    <AppScreen scroll contentStyle={styles.screenContent}>
+      <SectionHeader
+        eyebrow={currentTransaction.status === "cancelled" ? "Cancelled transaction" : "Transaction details"}
+        subtitle={currentTransaction.status === "cancelled" ? "Cancelled transactions remain in history and do not affect totals." : "Review the account, category, date, and note."}
+        title={titleForType(currentTransaction.type)}
+      />
 
-      <View style={styles.card}>
-        <Row label="Amount" value={formatMinorAsCurrency(currentTransaction.amountMinor, currentTransaction.currency)} />
+      <AppCard style={styles.heroCard}>
+        <View style={[styles.typeIcon, { backgroundColor: visual.surface }]}>
+          <Ionicons color={visual.color} name={visual.icon} size={24} />
+        </View>
+        <MetricTile
+          label="Amount"
+          prominent
+          tone={currentTransaction.type === "income" ? "success" : currentTransaction.type === "expense" ? "danger" : "primary"}
+          value={formatDetailAmount(currentTransaction.type, currentTransaction.amountMinor, currentTransaction.currency)}
+        />
+      </AppCard>
+
+      <AppCard padding="none" style={styles.card}>
         <Row label="Source account" value={source?.name ?? "Archived or missing account"} />
         {destination ? <Row label="Destination account" value={destination.name} /> : null}
         {category ? <Row label="Category" value={category.name} /> : null}
@@ -96,7 +111,7 @@ export function TransactionDetailScreen({ transactionId }: TransactionDetailScre
         <Row label="Note" value={currentTransaction.note ?? "None"} />
         <Row label="Created" value={currentTransaction.createdAt} />
         <Row label="Updated" value={currentTransaction.updatedAt} />
-      </View>
+      </AppCard>
 
       {params.status ? (
         <AppText style={styles.success} tone="success" variant="caption">
@@ -139,17 +154,49 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function titleForType(type: string) {
+  if (type === "income") return "Income";
+  if (type === "expense") return "Expense";
+  if (type === "transfer") return "Transfer";
+  return "Adjustment";
+}
+
+function formatDetailAmount(type: string, amountMinor: number, currency: string) {
+  if (type === "income") return `+${formatMinorAsCurrency(amountMinor, currency)}`;
+  if (type === "expense") return formatMinorAsCurrency(-amountMinor, currency);
+  return formatMinorAsCurrency(amountMinor, currency);
+}
+
+function getTransactionVisual(type: string) {
+  if (type === "income") {
+    return { icon: "arrow-down-circle-outline" as const, color: theme.colors.success, surface: theme.colors.successSurface };
+  }
+
+  if (type === "expense") {
+    return { icon: "arrow-up-circle-outline" as const, color: theme.colors.danger, surface: theme.colors.dangerSurface };
+  }
+
+  return { icon: "swap-horizontal-outline" as const, color: theme.colors.primary, surface: theme.colors.surfaceTint };
+}
+
 const styles = StyleSheet.create({
-  header: {
-    gap: theme.spacing.xxs,
+  screenContent: {
+    paddingBottom: theme.spacing.xxxl,
+  },
+  heroCard: {
+    gap: theme.spacing.md,
     marginBottom: theme.spacing.lg,
+    ...theme.shadows.card,
   },
   card: {
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
-    overflow: "hidden",
+    marginTop: theme.spacing.lg,
+  },
+  typeIcon: {
+    height: 48,
+    width: 48,
+    borderRadius: theme.radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
   },
   row: {
     gap: theme.spacing.xs,

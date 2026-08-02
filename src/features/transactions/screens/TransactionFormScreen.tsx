@@ -1,11 +1,14 @@
 import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
+import { AppChip } from "@/src/components/AppChip";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
 import { AppTextInput } from "@/src/components/AppTextInput";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
 import { InlineState } from "@/src/features/finance/components/InlineState";
@@ -111,24 +114,18 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
 
   return (
     <AppScreen scroll contentStyle={styles.screenContent}>
-      <View style={styles.header}>
-        <AppText tone="subtle" variant="label">
-          {transaction ? "Edit transaction" : entryMode === "savings" ? "Save money" : "New transaction"}
-        </AppText>
-        <AppText variant="title">{transaction ? "Update record" : entryMode === "savings" ? "Save money" : "Add transaction"}</AppText>
-        {entryMode === "savings" ? (
-          <AppText tone="subtle">
-            Saving moves money into one of your savings accounts. It is not counted as an expense.
-          </AppText>
-        ) : null}
-      </View>
+      <SectionHeader
+        eyebrow={transaction ? "Edit transaction" : entryMode === "savings" ? "Save money" : "New transaction"}
+        subtitle={entryMode === "savings" ? "Saving moves money into one of your savings accounts. It is not counted as an expense." : "Choose the type, amount, account, date, and category."}
+        title={transaction ? "Update transaction" : entryMode === "savings" ? "Save money" : "Add transaction"}
+      />
 
-      <View style={styles.card}>
+      <AppCard style={styles.card}>
         <View style={styles.group}>
           <AppText variant="label">Type</AppText>
           <View style={styles.chips}>
             {transactionTypes.map((type) => (
-              <Chip
+              <AppChip
                 key={type}
                 active={values.type === type}
                 disabled={Boolean(transaction)}
@@ -162,9 +159,9 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
         <View style={styles.group}>
           <AppText variant="label">Date shortcut</AppText>
           <View style={styles.chips}>
-            <Chip active={values.occurredAt === toIsoDate(new Date())} label="Today" onPress={() => setValues((current) => ({ ...current, occurredAt: toIsoDate(new Date()) }))} />
-            <Chip active={values.occurredAt === shiftIsoDate(toIsoDate(new Date()), -1)} label="Yesterday" onPress={() => setValues((current) => ({ ...current, occurredAt: shiftIsoDate(toIsoDate(new Date()), -1) }))} />
-            <Chip active={values.occurredAt !== toIsoDate(new Date()) && values.occurredAt !== shiftIsoDate(toIsoDate(new Date()), -1)} label="Custom date" onPress={() => undefined} />
+            <AppChip active={values.occurredAt === toIsoDate(new Date())} label="Today" onPress={() => setValues((current) => ({ ...current, occurredAt: toIsoDate(new Date()) }))} />
+            <AppChip active={values.occurredAt === shiftIsoDate(toIsoDate(new Date()), -1)} label="Yesterday" onPress={() => setValues((current) => ({ ...current, occurredAt: shiftIsoDate(toIsoDate(new Date()), -1) }))} />
+            <AppChip active={values.occurredAt !== toIsoDate(new Date()) && values.occurredAt !== shiftIsoDate(toIsoDate(new Date()), -1)} label="Custom date" onPress={() => undefined} />
           </View>
         </View>
 
@@ -224,7 +221,7 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
           onPress={handleSubmit}
           title={transaction ? "Save transaction" : getSubmitLabel(values.type, entryMode)}
         />
-      </View>
+      </AppCard>
     </AppScreen>
   );
 }
@@ -250,7 +247,7 @@ function PickerGroup({
           </AppText>
         ) : (
           options.map((option) => (
-            <Chip
+            <AppChip
               key={option.id}
               active={selectedId === option.id}
               label={option.label}
@@ -263,47 +260,13 @@ function PickerGroup({
   );
 }
 
-function Chip({
-  label,
-  active,
-  disabled = false,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  disabled?: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: active, disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={[styles.chip, active ? styles.chipActive : null, disabled ? styles.chipDisabled : null]}
-    >
-      <AppText tone={active ? "inverse" : "default"} variant="caption">
-        {label}
-      </AppText>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   screenContent: {
     paddingBottom: theme.spacing.xxxl,
   },
-  header: {
-    gap: theme.spacing.xxs,
-    marginBottom: theme.spacing.lg,
-  },
   card: {
     gap: theme.spacing.lg,
-    padding: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
+    ...theme.shadows.card,
   },
   group: {
     gap: theme.spacing.sm,
@@ -312,21 +275,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.xs,
-  },
-  chip: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  chipActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
-  },
-  chipDisabled: {
-    opacity: 0.6,
   },
   error: {
     padding: theme.spacing.md,

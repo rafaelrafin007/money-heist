@@ -1,9 +1,12 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
 import { getAccountBalancesForDisplay } from "@/src/features/finance/api/realFinanceSelectors";
@@ -25,16 +28,13 @@ export function AccountsListScreen() {
       : [];
 
   return (
-    <AppScreen scroll>
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <AppText tone="subtle" variant="label">
-            Balances
-          </AppText>
-          <AppText variant="title">Accounts</AppText>
-        </View>
-        <AppButton onPress={() => router.push("/accounts/new")} title="Add" />
-      </View>
+    <AppScreen scroll contentStyle={styles.screenContent}>
+      <SectionHeader
+        action={<AppButton onPress={() => router.push("/accounts/new")} title="Add" />}
+        eyebrow="Balances"
+        subtitle="Review account balances, savings accounts, and liabilities."
+        title="Accounts"
+      />
 
       {isLoading ? <InlineState title="Loading accounts" message="Getting your account balances." /> : null}
       {error ? (
@@ -61,8 +61,11 @@ export function AccountsListScreen() {
 
       <View style={styles.list}>
         {balances.map(({ account, balanceMinor }) => (
-          <View key={account.id} style={styles.card}>
+          <AppCard key={account.id} style={styles.card}>
             <View style={styles.cardHeader}>
+              <View style={styles.accountIcon}>
+                <Ionicons color={isLiabilityAccount(account) ? theme.colors.danger : account.isSavings ? theme.colors.success : theme.colors.primary} name={isLiabilityAccount(account) ? "card-outline" : account.isSavings ? "shield-checkmark-outline" : "wallet-outline"} size={22} />
+              </View>
               <View style={styles.cardCopy}>
                 <AppText variant="label">{account.name}</AppText>
                 <AppText tone="subtle" variant="caption">
@@ -79,7 +82,7 @@ export function AccountsListScreen() {
               </AppText>
             </View>
             <AppButton onPress={() => router.push(`/accounts/${account.id}` as Href)} title="View details" variant="secondary" />
-          </View>
+          </AppCard>
         ))}
       </View>
     </AppScreen>
@@ -91,32 +94,29 @@ function getMessage(error: unknown) {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing.lg,
-  },
-  headerCopy: {
-    flex: 1,
-    gap: theme.spacing.xxs,
+  screenContent: {
+    paddingBottom: theme.spacing.xxxl,
   },
   list: {
     gap: theme.spacing.md,
   },
   card: {
     gap: theme.spacing.md,
-    padding: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
+    ...theme.shadows.card,
   },
   cardHeader: {
     flexDirection: "row",
+    alignItems: "flex-start",
     gap: theme.spacing.md,
     justifyContent: "space-between",
+  },
+  accountIcon: {
+    height: 42,
+    width: 42,
+    borderRadius: theme.radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.surfaceMuted,
   },
   cardCopy: {
     flex: 1,

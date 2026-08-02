@@ -2,9 +2,12 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
 import { AppTextInput } from "@/src/components/AppTextInput";
+import { MetricTile } from "@/src/components/MetricTile";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { getCurrentCalendarMonth, monthLabel, shiftCalendarMonth } from "@/src/features/finance/dates";
 import { InlineState } from "@/src/features/finance/components/InlineState";
 import { formatMinorAsCurrency, minorToDisplayParts } from "@/src/features/finance/money";
@@ -67,28 +70,40 @@ export function PlanningScreen() {
 
   return (
     <AppScreen scroll contentStyle={styles.screenContent}>
-      <View style={styles.header}>
-        <AppText tone="subtle" variant="label">User estimates</AppText>
-        <AppText variant="title">Monthly plan</AppText>
-      </View>
+      <SectionHeader
+        eyebrow="User estimates"
+        subtitle="Use expected income, obligations, and a buffer to estimate potential savings."
+        title="Monthly plan"
+      />
 
-      <View style={styles.monthControls}>
-        <AppButton variant="secondary" onPress={() => changeMonth(-1)} title="Previous" />
-        <View style={styles.monthLabel}>
-          <AppText variant="label">{monthLabel(monthStart)}</AppText>
-          <AppText tone="subtle" variant="caption">BDT calendar month</AppText>
+      <AppCard padding="md" style={styles.monthCard}>
+        <View style={styles.monthControls}>
+          <AppButton variant="secondary" onPress={() => changeMonth(-1)} title="Previous" />
+          <View style={styles.monthLabel}>
+            <AppText variant="label">{monthLabel(monthStart)}</AppText>
+            <AppText tone="subtle" variant="caption">BDT calendar month</AppText>
+          </View>
+          <AppButton variant="secondary" onPress={() => changeMonth(1)} title="Next" />
         </View>
-        <AppButton variant="secondary" onPress={() => changeMonth(1)} title="Next" />
-      </View>
+      </AppCard>
 
       {plan.isLoading ? <InlineState title="Loading plan" message="Getting your monthly plan." /> : null}
       {plan.error ? <InlineState title="We couldn't load your monthly plan" message={getMessage(plan.error)} /> : null}
 
       {!plan.isLoading && !plan.error ? (
-        <View style={styles.card}>
+        <AppCard style={styles.card}>
           <AppText tone="subtle" variant="caption">
             These are your estimates for the month. Use them to calculate potential savings.
           </AppText>
+
+          {plan.data ? (
+            <View style={styles.savedGrid}>
+              <MetricTile label="Expected income" value={formatMinorAsCurrency(plan.data.expectedRemainingIncomeMinor, plan.data.currency)} tone="success" />
+              <MetricTile label="Fixed expenses" value={formatMinorAsCurrency(-plan.data.upcomingFixedExpensesMinor, plan.data.currency)} tone="danger" />
+              <MetricTile label="Debt payments" value={formatMinorAsCurrency(-plan.data.debtObligationsMinor, plan.data.currency)} tone="warning" />
+              <MetricTile label="Safety buffer" value={formatMinorAsCurrency(plan.data.safetyBufferMinor, plan.data.currency)} tone="primary" />
+            </View>
+          ) : null}
 
           <AppTextInput
             keyboardType="decimal-pad"
@@ -126,16 +141,10 @@ export function PlanningScreen() {
             value={effectiveValues.notes}
           />
 
-          {plan.data ? (
-            <AppText tone="subtle" variant="caption">
-              Current saved estimates: income {formatMinorAsCurrency(plan.data.expectedRemainingIncomeMinor, plan.data.currency)}, fixed expenses {formatMinorAsCurrency(plan.data.upcomingFixedExpensesMinor, plan.data.currency)}, debt {formatMinorAsCurrency(plan.data.debtObligationsMinor, plan.data.currency)}, buffer {formatMinorAsCurrency(plan.data.safetyBufferMinor, plan.data.currency)}.
-            </AppText>
-          ) : null}
-
           {message ? <AppText style={styles.message} tone="subtle" variant="caption">{message}</AppText> : null}
 
-          <AppButton loading={upsert.isPending} onPress={handleSubmit} title="Save planning assumptions" />
-        </View>
+          <AppButton loading={upsert.isPending} onPress={handleSubmit} title="Save monthly plan" />
+        </AppCard>
       ) : null}
     </AppScreen>
   );
@@ -152,9 +161,10 @@ function getMessage(error: unknown) {
 
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: theme.spacing.xxxl },
-  header: { gap: theme.spacing.xxs, marginBottom: theme.spacing.lg },
-  monthControls: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, marginBottom: theme.spacing.lg },
+  monthCard: { marginBottom: theme.spacing.lg },
+  monthControls: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   monthLabel: { flex: 1, alignItems: "center", gap: theme.spacing.xxs },
-  card: { gap: theme.spacing.lg, padding: theme.spacing.lg, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface },
+  card: { gap: theme.spacing.lg, ...theme.shadows.card },
+  savedGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md },
   message: { padding: theme.spacing.md, borderRadius: theme.radius.md, backgroundColor: theme.colors.surfaceMuted },
 });

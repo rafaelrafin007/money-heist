@@ -1,10 +1,13 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
 import { useState } from "react";
 import { Alert, Platform, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { theme } from "@/src/theme";
 
@@ -69,43 +72,42 @@ export function SettingsScreen() {
 
   return (
     <AppScreen scroll contentStyle={styles.screenContent}>
-      <View style={styles.header}>
-        <AppText tone="subtle" variant="label">
-          Profile and preferences
-        </AppText>
-        <AppText variant="title">Settings</AppText>
-      </View>
+      <SectionHeader
+        eyebrow="Profile and preferences"
+        subtitle="Manage account details, money setup, and security actions."
+        title="Settings"
+      />
 
       <AppText style={styles.sectionTitle} variant="label">Profile</AppText>
-      <View style={styles.card}>
+      <AppCard padding="none" style={styles.card}>
         {profileRows.map((row) => (
           <View key={row.label} style={styles.row}>
             <AppText tone="subtle">{row.label}</AppText>
             <AppText variant="label">{row.value}</AppText>
           </View>
         ))}
-      </View>
+      </AppCard>
 
       <AppText style={styles.sectionTitle} variant="label">Preferences</AppText>
-      <View style={styles.card}>
+      <AppCard padding="none" style={styles.card}>
         {preferenceRows.map((row) => (
           <View key={row.label} style={styles.row}>
             <AppText tone="subtle">{row.label}</AppText>
             <AppText variant="label">{row.value}</AppText>
           </View>
         ))}
-      </View>
+      </AppCard>
 
-      <View style={styles.actionCard}>
+      <AppCard style={styles.actionCard}>
         <AppText variant="label">Money setup</AppText>
-        <AppButton onPress={() => router.push("/accounts" as Href)} title="Manage accounts" variant="secondary" />
-        <AppButton onPress={() => router.push("/categories" as Href)} title="Manage categories" variant="secondary" />
-        <AppButton onPress={() => router.push("/budgets" as Href)} title="Manage budgets" variant="secondary" />
-        <AppButton onPress={() => router.push("/savings" as Href)} title="Manage savings goals" variant="secondary" />
-        <AppButton onPress={() => router.push("/planning" as Href)} title="Monthly plan" variant="secondary" />
-      </View>
+        <SettingsAction icon="wallet-outline" label="Manage accounts" onPress={() => router.push("/accounts" as Href)} />
+        <SettingsAction icon="pricetags-outline" label="Manage categories" onPress={() => router.push("/categories" as Href)} />
+        <SettingsAction icon="pie-chart-outline" label="Manage budgets" onPress={() => router.push("/budgets" as Href)} />
+        <SettingsAction icon="shield-checkmark-outline" label="Manage savings goals" onPress={() => router.push("/savings" as Href)} />
+        <SettingsAction icon="calendar-outline" label="Monthly plan" onPress={() => router.push("/planning" as Href)} />
+      </AppCard>
 
-      <View style={styles.actionCard}>
+      <AppCard style={styles.actionCard}>
         <AppText variant="label">Security</AppText>
         <AppText tone="subtle" variant="caption">
           Log out when you are done using this device.
@@ -124,8 +126,27 @@ export function SettingsScreen() {
           title="Log out"
           variant="secondary"
         />
-      </View>
+      </AppCard>
     </AppScreen>
+  );
+}
+
+function SettingsAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <AppButton
+      icon={<Ionicons color={theme.colors.primary} name={icon} size={18} />}
+      onPress={onPress}
+      title={label}
+      variant="secondary"
+    />
   );
 }
 
@@ -133,16 +154,8 @@ const styles = StyleSheet.create({
   screenContent: {
     paddingBottom: theme.spacing.xxxl * 3,
   },
-  header: {
-    gap: theme.spacing.xxs,
-    marginBottom: theme.spacing.lg,
-  },
   card: {
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
-    overflow: "hidden",
+    ...theme.shadows.card,
   },
   sectionTitle: {
     marginTop: theme.spacing.lg,
@@ -159,11 +172,7 @@ const styles = StyleSheet.create({
   actionCard: {
     gap: theme.spacing.md,
     marginTop: theme.spacing.lg,
-    padding: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
+    ...theme.shadows.card,
   },
   errorNotice: {
     padding: theme.spacing.md,

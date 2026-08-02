@@ -1,6 +1,8 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { AppCard } from "@/src/components/AppCard";
 import { AppText } from "@/src/components/AppText";
 import type { Account } from "@/src/features/finance/types";
 import { getQuickEntryHref, type QuickEntryAction } from "@/src/features/transactions/quickEntry";
@@ -11,11 +13,13 @@ type QuickEntryActionsProps = {
   title?: string;
 };
 
-const actions: { action: QuickEntryAction; label: string; detail: string }[] = [
-  { action: "income", label: "Income", detail: "Add money in" },
-  { action: "expense", label: "Expense", detail: "Record spending" },
-  { action: "save", label: "Save", detail: "Move to savings" },
-  { action: "transfer", label: "Transfer", detail: "Move between accounts" },
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
+
+const actions: { action: QuickEntryAction; label: string; detail: string; icon: IconName; color: string; surface: string }[] = [
+  { action: "income", label: "Income", detail: "Add money in", icon: "arrow-down-circle-outline", color: theme.colors.success, surface: theme.colors.successSurface },
+  { action: "expense", label: "Expense", detail: "Record spending", icon: "arrow-up-circle-outline", color: theme.colors.danger, surface: theme.colors.dangerSurface },
+  { action: "save", label: "Save", detail: "Move to savings", icon: "shield-checkmark-outline", color: theme.colors.primary, surface: theme.colors.surfaceTint },
+  { action: "transfer", label: "Transfer", detail: "Between accounts", icon: "swap-horizontal-outline", color: theme.colors.warning, surface: theme.colors.warningSurface },
 ];
 
 export function QuickEntryActions({ accounts = [], title = "Quick entry" }: QuickEntryActionsProps) {
@@ -33,7 +37,10 @@ export function QuickEntryActions({ accounts = [], title = "Quick entry" }: Quic
 
   return (
     <View style={styles.container}>
-      <AppText variant="label">{title}</AppText>
+      <View style={styles.headingRow}>
+        <AppText variant="label">{title}</AppText>
+        <AppText tone="subtle" variant="caption">Fast actions</AppText>
+      </View>
       <View style={styles.grid}>
         {actions.map((item) => (
           <Pressable
@@ -43,8 +50,15 @@ export function QuickEntryActions({ accounts = [], title = "Quick entry" }: Quic
             onPress={() => handlePress(item.action)}
             style={({ pressed }) => [styles.action, pressed ? styles.pressed : null]}
           >
-            <AppText variant="label">{item.label}</AppText>
-            <AppText tone="subtle" variant="caption">{item.detail}</AppText>
+            <AppCard padding="md" style={styles.actionCard}>
+              <View style={[styles.iconWrap, { backgroundColor: item.surface }]}>
+                <Ionicons color={item.color} name={item.icon} size={20} />
+              </View>
+              <View style={styles.actionCopy}>
+                <AppText variant="label">{item.label}</AppText>
+                <AppText tone="subtle" variant="caption">{item.detail}</AppText>
+              </View>
+            </AppCard>
           </Pressable>
         ))}
       </View>
@@ -54,19 +68,15 @@ export function QuickEntryActions({ accounts = [], title = "Quick entry" }: Quic
 
 const styles = StyleSheet.create({
   container: { gap: theme.spacing.md, marginBottom: theme.spacing.lg },
+  headingRow: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: theme.spacing.md },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md },
   action: {
     width: "47%",
     minWidth: 140,
     flexGrow: 1,
-    minHeight: 76,
-    gap: theme.spacing.xs,
-    justifyContent: "center",
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
   },
+  actionCard: { minHeight: 92, gap: theme.spacing.sm, justifyContent: "center", ...theme.shadows.card },
+  iconWrap: { height: 36, width: 36, borderRadius: theme.radius.pill, alignItems: "center", justifyContent: "center" },
+  actionCopy: { gap: theme.spacing.xxs },
   pressed: { opacity: 0.86 },
 });

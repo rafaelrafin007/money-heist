@@ -1,9 +1,13 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
+import { MetricTile } from "@/src/components/MetricTile";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useBudgetsForMonth } from "@/src/features/budgets/api/budgetsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
@@ -16,15 +20,6 @@ import { useSavingsGoals } from "@/src/features/savings/api/savingsGoalsHooks";
 import { QuickEntryActions } from "@/src/features/transactions/components/QuickEntryActions";
 import { useTransactions } from "@/src/features/transactions/api/transactionsHooks";
 import { theme } from "@/src/theme";
-
-type MetricTone = "default" | "success" | "danger" | "warning";
-
-const metricToneMap: Record<MetricTone, { color: string; backgroundColor: string }> = {
-  default: { color: theme.colors.text, backgroundColor: theme.colors.surfaceMuted },
-  success: { color: theme.colors.success, backgroundColor: theme.colors.successSurface },
-  danger: { color: theme.colors.danger, backgroundColor: theme.colors.dangerSurface },
-  warning: { color: theme.colors.warning, backgroundColor: theme.colors.warningSurface },
-};
 
 export function DashboardOverview() {
   const range = getCurrentCalendarMonth();
@@ -58,13 +53,12 @@ export function DashboardOverview() {
     : [];
 
   return (
-    <AppScreen scroll>
-      <View style={styles.header}>
-        <AppText tone="subtle" variant="label">
-          {overview?.monthLabel ?? "Dashboard"}
-        </AppText>
-        <AppText variant="title">Financial overview</AppText>
-      </View>
+    <AppScreen scroll contentStyle={styles.screenContent}>
+      <SectionHeader
+        eyebrow={overview?.monthLabel ?? "Dashboard"}
+        subtitle="A quick look at balances, cash flow, savings, and planning."
+        title="Financial overview"
+      />
 
       {isLoading ? <InlineState title="Loading dashboard" message="Getting your financial overview." /> : null}
       {error ? (
@@ -94,27 +88,38 @@ export function DashboardOverview() {
 
       {overview ? (
         <>
-          <QuickEntryActions accounts={accounts.data ?? []} />
-
           <View style={styles.balanceCard}>
-            <AppText tone="inverse" variant="caption">
-              Liquid balance
-            </AppText>
-            <AppText tone="inverse" variant="headline">
-              {formatMinorAsCurrency(overview.liquidBalanceMinor, overview.currency)}
-            </AppText>
-            <AppText style={styles.balanceCopy} tone="inverse" variant="caption">
-              Available across your active accounts. Transfers are not counted as income or expenses.
-            </AppText>
+            <View style={styles.balanceTopRow}>
+              <View style={styles.balanceIcon}>
+                <Ionicons color={theme.colors.inverseText} name="wallet-outline" size={22} />
+              </View>
+              <AppText tone="inverse" variant="caption">{overview.monthLabel}</AppText>
+            </View>
+            <View style={styles.balanceCopyBlock}>
+              <AppText tone="inverse" variant="caption">Liquid balance</AppText>
+              <AppText tone="inverse" variant="headline">
+                {formatMinorAsCurrency(overview.liquidBalanceMinor, overview.currency)}
+              </AppText>
+              <AppText style={styles.balanceCopy} tone="inverse" variant="caption">
+                Available across your active accounts. Transfers are not counted as income or expenses.
+              </AppText>
+            </View>
           </View>
+
+          <QuickEntryActions accounts={accounts.data ?? []} />
 
           <View style={styles.metricGrid}>
             {metrics.map((metric) => (
-              <MetricCard key={metric.label} currency={overview.currency} metric={metric} />
+              <MetricTile
+                key={metric.label}
+                label={metric.label}
+                tone={metric.tone}
+                value={formatMinorAsCurrency(metric.valueMinor, overview.currency)}
+              />
             ))}
           </View>
 
-          <View style={styles.forecastNote}>
+          <AppCard tone="warning" style={styles.forecastNote}>
             <View style={styles.sectionHeaderCompact}>
               <AppText tone="subtle" variant="label">
                 Planning insights
@@ -124,10 +129,10 @@ export function DashboardOverview() {
               </AppText>
             </View>
             <View style={styles.metricGridCompact}>
-              <MetricCard currency={overview.currency} metric={{ label: "Budget remaining", valueMinor: overview.budgetRemainingMinor, tone: "default" }} />
-              <MetricCard currency={overview.currency} metric={{ label: "Daily allowance", valueMinor: overview.dailyBudgetAllowanceMinor, tone: "default" }} />
-              <MetricCard currency={overview.currency} metric={{ label: "Potential savings", valueMinor: overview.potentialSavings.amountMinor, tone: overview.potentialSavings.status === "complete" ? "success" : "warning" }} />
-              <MetricCard currency={overview.currency} metric={{ label: "Goal monthly need", valueMinor: Math.max(0, ...overview.goalProgress.map((goal) => goal.requiredMonthlyContributionMinor)), tone: "default" }} />
+              <MetricTile label="Budget remaining" value={formatMinorAsCurrency(overview.budgetRemainingMinor, overview.currency)} />
+              <MetricTile label="Daily allowance" value={formatMinorAsCurrency(overview.dailyBudgetAllowanceMinor, overview.currency)} />
+              <MetricTile label="Potential savings" value={formatMinorAsCurrency(overview.potentialSavings.amountMinor, overview.currency)} tone={overview.potentialSavings.status === "complete" ? "success" : "warning"} />
+              <MetricTile label="Goal monthly need" value={formatMinorAsCurrency(Math.max(0, ...overview.goalProgress.map((goal) => goal.requiredMonthlyContributionMinor)), overview.currency)} />
             </View>
             <AppText tone="subtle" variant="caption">
               Based on available cash, expected income, remaining budgets, upcoming expenses, debt obligations, and your safety buffer.
@@ -143,16 +148,11 @@ export function DashboardOverview() {
               </AppText>
             ) : null}
             <AppButton onPress={() => router.push("/planning" as Href)} title="Edit monthly plan" variant="secondary" />
-          </View>
+          </AppCard>
 
-          <View style={styles.sectionHeader}>
-            <AppText variant="title">Recent transactions</AppText>
-            <AppText tone="subtle" variant="caption">
-              Active only
-            </AppText>
-          </View>
+          <SectionHeader eyebrow="Active only" title="Recent transactions" />
 
-          <View style={styles.listCard}>
+          <AppCard padding="none" style={styles.listCard}>
             {overview.recentTransactions.length === 0 ? (
               <AppText style={styles.emptyText} tone="subtle">
                 No active transactions yet.
@@ -160,6 +160,9 @@ export function DashboardOverview() {
             ) : (
               overview.recentTransactions.map((transaction) => (
                 <View key={transaction.id} style={styles.transactionRow}>
+                  <View style={styles.transactionIcon}>
+                    <Ionicons color={transaction.type === "income" ? theme.colors.success : transaction.type === "expense" ? theme.colors.danger : theme.colors.primary} name={transaction.type === "income" ? "arrow-down-circle-outline" : transaction.type === "expense" ? "arrow-up-circle-outline" : "swap-horizontal-outline"} size={20} />
+                  </View>
                   <View style={styles.transactionCopy}>
                     <AppText variant="label">{transaction.title}</AppText>
                     <AppText tone="subtle" variant="caption">
@@ -172,33 +175,10 @@ export function DashboardOverview() {
                 </View>
               ))
             )}
-          </View>
+          </AppCard>
         </>
       ) : null}
     </AppScreen>
-  );
-}
-
-function MetricCard({
-  metric,
-  currency,
-}: {
-  metric: { label: string; valueMinor: number; tone: MetricTone };
-  currency: string;
-}) {
-  const tone = metricToneMap[metric.tone];
-  return (
-    <View style={styles.metricCard}>
-      <View style={[styles.metricMarker, { backgroundColor: tone.backgroundColor }]}>
-        <View style={[styles.metricDot, { backgroundColor: tone.color }]} />
-      </View>
-      <AppText tone="subtle" variant="caption">
-        {metric.label}
-      </AppText>
-      <AppText style={{ color: tone.color }} variant="metric">
-        {formatMinorAsCurrency(metric.valueMinor, currency)}
-      </AppText>
-    </View>
   );
 }
 
@@ -213,37 +193,28 @@ function getMessage(error: unknown) {
 }
 
 const styles = StyleSheet.create({
-  header: { gap: theme.spacing.xxs, marginBottom: theme.spacing.lg },
+  screenContent: { paddingBottom: theme.spacing.xxxl },
   balanceCard: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xl,
     padding: theme.spacing.xl,
     borderRadius: theme.radius.lg,
     backgroundColor: theme.colors.primary,
+    marginBottom: theme.spacing.lg,
     ...theme.shadows.card,
   },
+  balanceTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md },
+  balanceIcon: { height: 42, width: 42, borderRadius: theme.radius.pill, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.14)" },
+  balanceCopyBlock: { gap: theme.spacing.sm },
   balanceCopy: { opacity: 0.78 },
-  metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginTop: theme.spacing.lg },
-  metricCard: {
-    width: "47%",
-    minWidth: 150,
-    flexGrow: 1,
-    gap: theme.spacing.xs,
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
-  },
-  metricMarker: { height: 28, width: 28, borderRadius: theme.radius.pill, alignItems: "center", justifyContent: "center" },
-  metricDot: { height: 10, width: 10, borderRadius: theme.radius.pill },
-  forecastNote: { gap: theme.spacing.xs, marginTop: theme.spacing.lg, padding: theme.spacing.md, borderRadius: theme.radius.md, backgroundColor: theme.colors.warningSurface },
+  metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginBottom: theme.spacing.lg },
+  forecastNote: { gap: theme.spacing.md, marginBottom: theme.spacing.xl },
   sectionHeaderCompact: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: theme.spacing.md },
   metricGridCompact: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginTop: theme.spacing.sm },
   warningText: { color: theme.colors.warning },
   dangerText: { color: theme.colors.danger },
-  sectionHeader: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: theme.spacing.md, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md },
-  listCard: { borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface, overflow: "hidden" },
+  listCard: { marginTop: -theme.spacing.sm, ...theme.shadows.card },
   transactionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md, padding: theme.spacing.md, borderBottomWidth: 1, borderBottomColor: theme.colors.borderSubtle },
+  transactionIcon: { height: 36, width: 36, borderRadius: theme.radius.pill, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.surfaceMuted },
   transactionCopy: { flex: 1, gap: theme.spacing.xxs },
   emptyText: { padding: theme.spacing.lg, textAlign: "center" },
 });

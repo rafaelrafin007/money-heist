@@ -1,11 +1,16 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
+import { AppChip } from "@/src/components/AppChip";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
 import { AppTextInput } from "@/src/components/AppTextInput";
+import { MetricTile } from "@/src/components/MetricTile";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
 import { buildFinanceDataset, getTransactionViews } from "@/src/features/finance/api/realFinanceSelectors";
@@ -89,16 +94,13 @@ export function TransactionsScreen() {
   const viewsById = useMemo(() => new Map(transactionViews.map((transaction) => [transaction.id, transaction])), [transactionViews]);
 
   return (
-    <AppScreen scroll>
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <AppText tone="subtle" variant="label">
-            Money in and out
-          </AppText>
-          <AppText variant="title">Transactions</AppText>
-        </View>
-        <AppButton onPress={() => router.push("/transactions/new")} title="Add" />
-      </View>
+    <AppScreen scroll contentStyle={styles.screenContent}>
+      <SectionHeader
+        action={<AppButton onPress={() => router.push("/transactions/new")} title="Add" />}
+        eyebrow="Money in and out"
+        subtitle="Review daily activity, filter movement, and keep your cash flow clear."
+        title="Transactions"
+      />
 
       {isLoading ? <InlineState title="Loading transactions" message="Getting your recent activity." /> : null}
       {error ? (
@@ -118,11 +120,17 @@ export function TransactionsScreen() {
         <>
           <QuickEntryActions accounts={accounts.data ?? []} title="Add money movement" />
 
-          <View style={styles.periodFilters}>
-            <Chip active={periodFilter === "today"} label="Today" onPress={() => setPeriodFilter("today")} />
-            <Chip active={periodFilter === "month"} label="This month" onPress={() => setPeriodFilter("month")} />
-            <Chip active={periodFilter === "all"} label="All transactions" onPress={() => setPeriodFilter("all")} />
-          </View>
+          <AppCard padding="md" style={styles.controlCard}>
+            <View style={styles.filterHeader}>
+              <AppText variant="label">View</AppText>
+              <AppText tone="subtle" variant="caption">{filteredTransactions.length} shown</AppText>
+            </View>
+            <View style={styles.periodFilters}>
+              <AppChip active={periodFilter === "today"} label="Today" onPress={() => setPeriodFilter("today")} />
+              <AppChip active={periodFilter === "month"} label="This month" onPress={() => setPeriodFilter("month")} />
+              <AppChip active={periodFilter === "all"} label="All" onPress={() => setPeriodFilter("all")} />
+            </View>
+          </AppCard>
 
           {periodFilter !== "all" ? (
             <TransactionSummaryCards
@@ -132,27 +140,35 @@ export function TransactionsScreen() {
             />
           ) : null}
 
-          <AppTextInput
-            autoCapitalize="none"
-            label="Search transactions"
-            onChangeText={setSearch}
-            placeholder="Search by category, account or note"
-            value={search}
-          />
+          <AppCard padding="md" style={styles.controlCard}>
+            <AppTextInput
+              autoCapitalize="none"
+              label="Search transactions"
+              onChangeText={setSearch}
+              placeholder="Search by category, account or note"
+              value={search}
+            />
 
-          <View style={styles.filters}>
-            {filters.map((item) => (
-              <Chip key={item.value} active={filter === item.value} label={item.label} onPress={() => setFilter(item.value)} />
-            ))}
-          </View>
-          <View style={styles.filters}>
-            <Chip active={statusFilter === "active"} label="Active" onPress={() => setStatusFilter("active")} />
-            <Chip active={statusFilter === "cancelled"} label="Cancelled" onPress={() => setStatusFilter("cancelled")} />
-            <Chip active={statusFilter === "all"} label="All status" onPress={() => setStatusFilter("all")} />
-          </View>
+            <View style={styles.filters}>
+              {filters.map((item) => (
+                <AppChip
+                  key={item.value}
+                  active={filter === item.value}
+                  label={item.label}
+                  onPress={() => setFilter(item.value)}
+                  tone={item.value === "income" ? "success" : item.value === "expense" ? "danger" : "default"}
+                />
+              ))}
+            </View>
+            <View style={styles.filters}>
+              <AppChip active={statusFilter === "active"} label="Active" onPress={() => setStatusFilter("active")} />
+              <AppChip active={statusFilter === "cancelled"} label="Cancelled" onPress={() => setStatusFilter("cancelled")} tone="danger" />
+              <AppChip active={statusFilter === "all"} label="All status" onPress={() => setStatusFilter("all")} />
+            </View>
+          </AppCard>
 
           {transactionViews.length === 0 ? (
-            <View style={styles.firstUseCard}>
+            <AppCard style={styles.firstUseCard}>
               <AppText variant="label">Start your ledger</AppText>
               <AppText tone="subtle" variant="caption">
                 Add income, record an expense, or move money into savings.
@@ -160,27 +176,34 @@ export function TransactionsScreen() {
               <AppButton onPress={() => router.push("/transactions/new?type=income" as Href)} title="Add your first income" />
               <AppButton onPress={() => router.push("/transactions/new?type=expense" as Href)} title="Record your first expense" variant="secondary" />
               <AppButton onPress={() => router.push("/transactions/new?type=transfer&mode=savings" as Href)} title="Transfer money into savings" variant="secondary" />
-            </View>
+            </AppCard>
           ) : null}
 
           {filteredTransactions.length === 0 && transactionViews.length > 0 ? (
             <InlineState title="No matching transactions" message="Try another period, status, type, or search term." />
           ) : null}
 
-          {groupedTransactions.map((group) => (
-            <View key={group.date} style={styles.groupCard}>
+          <View style={styles.groupList}>
+            {groupedTransactions.map((group) => (
+            <AppCard key={group.date} padding="none" style={styles.groupCard}>
               <View style={styles.groupHeader}>
-                <AppText variant="label">{group.label}</AppText>
-                <AppText tone="subtle" variant="caption">
-                  Income {formatMinorAsCurrency(group.summary.incomeMinor, dataset.currency)} - Expenses {formatMinorAsCurrency(group.summary.expensesMinor, dataset.currency)} - Net {formatMinorAsCurrency(group.summary.netCashFlowMinor, dataset.currency)}
-                </AppText>
+                <View style={styles.groupHeaderCopy}>
+                  <AppText variant="label">{group.label}</AppText>
+                  <AppText tone="subtle" variant="caption">{group.date}</AppText>
+                </View>
+                <View style={styles.groupPills}>
+                  <DailyPill label="In" value={formatMinorAsCurrency(group.summary.incomeMinor, dataset.currency)} tone="success" />
+                  <DailyPill label="Out" value={formatMinorAsCurrency(group.summary.expensesMinor, dataset.currency)} tone="danger" />
+                  <DailyPill label="Net" value={formatMinorAsCurrency(group.summary.netCashFlowMinor, dataset.currency)} />
+                </View>
               </View>
               {group.transactions.map((transaction) => {
                 const view = viewsById.get(transaction.id);
                 return view ? <TransactionRow key={transaction.id} transaction={view} /> : null;
               })}
-            </View>
-          ))}
+            </AppCard>
+            ))}
+          </View>
         </>
       ) : null}
     </AppScreen>
@@ -190,51 +213,48 @@ export function TransactionsScreen() {
 function TransactionSummaryCards({ label, summary, currency }: { label: string; summary: TransactionPeriodSummary; currency: string }) {
   return (
     <View style={styles.summaryGrid}>
-      <SummaryCard label={`${label} income`} value={formatMinorAsCurrency(summary.incomeMinor, currency)} tone="success" />
-      <SummaryCard label={`${label} expenses`} value={formatMinorAsCurrency(-summary.expensesMinor, currency)} tone="danger" />
-      <SummaryCard label={`${label} net cash flow`} value={formatMinorAsCurrency(summary.netCashFlowMinor, currency)} tone={summary.netCashFlowMinor >= 0 ? "success" : "danger"} />
-      <SummaryCard label={`${label} saved`} value={formatMinorAsCurrency(summary.savedMinor, currency)} tone={summary.savedMinor >= 0 ? "success" : "danger"} />
-      <SummaryCard label="Transactions" value={`${summary.activeTransactionCount}`} />
+      <MetricTile label={`${label} income`} value={formatMinorAsCurrency(summary.incomeMinor, currency)} tone="success" />
+      <MetricTile label={`${label} expenses`} value={formatMinorAsCurrency(-summary.expensesMinor, currency)} tone="danger" />
+      <MetricTile label={`${label} net cash flow`} value={formatMinorAsCurrency(summary.netCashFlowMinor, currency)} tone={summary.netCashFlowMinor >= 0 ? "success" : "danger"} />
+      <MetricTile label={`${label} saved`} value={formatMinorAsCurrency(summary.savedMinor, currency)} tone={summary.savedMinor >= 0 ? "success" : "danger"} />
+      <MetricTile label="Transactions" value={`${summary.activeTransactionCount}`} tone="primary" />
     </View>
   );
 }
 
-function SummaryCard({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "danger" }) {
+function DailyPill({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "danger" }) {
   return (
-    <View style={styles.summaryCard}>
+    <View style={styles.dailyPill}>
       <AppText tone="subtle" variant="caption">{label}</AppText>
-      <AppText tone={tone} variant="label">{value}</AppText>
+      <AppText tone={tone} variant="caption">{value}</AppText>
     </View>
   );
 }
 
 function TransactionRow({ transaction }: { transaction: TransactionView }) {
   const tone = transaction.type === "income" ? "success" : transaction.type === "expense" ? "danger" : "default";
+  const visual = getTransactionVisual(transaction);
 
   return (
     <Pressable accessibilityRole="button" onPress={() => router.push(`/transactions/${transaction.id}` as Href)} style={styles.transactionRow}>
-      <View style={[styles.typeMarker, styles[`${transaction.type}Marker`]]} />
+      <View style={[styles.typeIcon, { backgroundColor: visual.surface }]}>
+        <Ionicons color={visual.color} name={visual.icon} size={20} />
+      </View>
       <View style={styles.transactionCopy}>
-        <AppText variant="label">{transaction.title}</AppText>
+        <View style={styles.transactionTitleRow}>
+          <AppText style={styles.transactionTitle} variant="label">{transaction.title}</AppText>
+          {transaction.status === "cancelled" ? (
+            <View style={styles.statusBadge}>
+              <AppText tone="danger" variant="caption">Cancelled</AppText>
+            </View>
+          ) : null}
+        </View>
         <AppText tone="subtle" variant="caption">
           {transaction.detail}
-        </AppText>
-        <AppText tone={transaction.status === "cancelled" ? "danger" : "subtle"} variant="caption">
-          {transaction.occurredAt} - {transaction.status ?? "active"}
         </AppText>
       </View>
       <AppText tone={tone} variant="label">
         {formatTransactionAmount(transaction)}
-      </AppText>
-    </Pressable>
-  );
-}
-
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={onPress} style={[styles.filterChip, active ? styles.filterChipActive : null]}>
-      <AppText tone={active ? "inverse" : "default"} variant="caption">
-        {label}
       </AppText>
     </Pressable>
   );
@@ -246,33 +266,49 @@ function formatTransactionAmount(transaction: TransactionView) {
   return formatMinorAsCurrency(transaction.amountMinor, transaction.currency);
 }
 
+function getTransactionVisual(transaction: TransactionView) {
+  if (transaction.type === "income") {
+    return { icon: "arrow-down-circle-outline" as const, color: theme.colors.success, surface: theme.colors.successSurface };
+  }
+
+  if (transaction.type === "expense") {
+    return { icon: "arrow-up-circle-outline" as const, color: theme.colors.danger, surface: theme.colors.dangerSurface };
+  }
+
+  return {
+    icon: transaction.destinationAccountName?.toLowerCase().includes("savings") ? "shield-checkmark-outline" as const : "swap-horizontal-outline" as const,
+    color: theme.colors.primary,
+    surface: theme.colors.surfaceTint,
+  };
+}
+
 function getMessage(error: unknown) {
   return error instanceof Error ? error.message : "We couldn't load your transactions. Please try again.";
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  screenContent: {
+    paddingBottom: theme.spacing.xxxl,
+  },
+  controlCard: {
     gap: theme.spacing.md,
     marginBottom: theme.spacing.lg,
   },
-  headerCopy: {
-    flex: 1,
-    gap: theme.spacing.xxs,
+  filterHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
   },
   filters: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.xs,
-    marginTop: theme.spacing.md,
   },
   periodFilters: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: theme.spacing.xs,
-    marginBottom: theme.spacing.md,
   },
   summaryGrid: {
     flexDirection: "row",
@@ -280,64 +316,48 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     marginBottom: theme.spacing.lg,
   },
-  summaryCard: {
-    width: "47%",
-    minWidth: 150,
-    flexGrow: 1,
-    gap: theme.spacing.xs,
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
-  },
   firstUseCard: {
     gap: theme.spacing.md,
     marginTop: theme.spacing.lg,
-    padding: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
   },
-  filterChip: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  filterChipActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
-  },
-  listCard: {
+  groupList: {
+    gap: theme.spacing.lg,
     marginTop: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
-    overflow: "hidden",
   },
   groupCard: {
-    marginTop: theme.spacing.lg,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    backgroundColor: theme.colors.surface,
-    overflow: "hidden",
+    ...theme.shadows.card,
   },
   groupHeader: {
-    gap: theme.spacing.xs,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: theme.spacing.md,
     padding: theme.spacing.md,
     backgroundColor: theme.colors.surfaceMuted,
+  },
+  groupHeaderCopy: {
+    flex: 1,
+    gap: theme.spacing.xxs,
+  },
+  groupPills: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: theme.spacing.xs,
+    maxWidth: "58%",
+  },
+  dailyPill: {
+    gap: 2,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xxs,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
   },
   transactionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing.md,
-    padding: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderSubtle,
   },
@@ -345,14 +365,25 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: theme.spacing.xxs,
   },
-  typeMarker: {
-    width: 4,
-    minHeight: 54,
-    borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.textSubtle,
+  transactionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.xs,
   },
-  incomeMarker: { backgroundColor: theme.colors.success },
-  expenseMarker: { backgroundColor: theme.colors.danger },
-  transferMarker: { backgroundColor: theme.colors.primaryMuted },
-  adjustmentMarker: { backgroundColor: theme.colors.warning },
+  transactionTitle: {
+    flexShrink: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.dangerSurface,
+  },
+  typeIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: theme.radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

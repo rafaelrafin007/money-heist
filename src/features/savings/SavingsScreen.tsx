@@ -1,10 +1,14 @@
 import { router, type Href } from "expo-router";
 import { useMemo } from "react";
-import { Pressable, StyleSheet, View, type DimensionValue } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
+import { MetricTile } from "@/src/components/MetricTile";
+import { ProgressBar } from "@/src/components/ProgressBar";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useBudgetsForMonth } from "@/src/features/budgets/api/budgetsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
@@ -63,13 +67,12 @@ export function SavingsScreen() {
 
   return (
     <AppScreen scroll contentStyle={styles.screenContent}>
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <AppText tone="subtle" variant="label">Goals and progress</AppText>
-          <AppText variant="title">Savings</AppText>
-        </View>
-        <AppButton onPress={() => router.push("/savings/new" as Href)} title="New goal" />
-      </View>
+      <SectionHeader
+        action={<AppButton onPress={() => router.push("/savings/new" as Href)} title="New goal" />}
+        eyebrow="Goals and progress"
+        subtitle="See saved balances, goal progress, and quick savings transfers."
+        title="Savings"
+      />
 
       {isLoading ? <InlineState title="Loading savings" message="Getting your savings balances and goals." /> : null}
       {error ? (
@@ -91,13 +94,13 @@ export function SavingsScreen() {
       {!isLoading && !error ? (
         <>
           <View style={styles.summaryGrid}>
-            <SummaryCard label="Total savings balance" value={formatMinorAsCurrency(calculateTotalSavingsBalance(dataset), dataset.currency)} tone="success" />
-            <SummaryCard label="Saved this month" value={formatMinorAsCurrency(calculateActualSavingsContribution(dataset, monthRange), dataset.currency)} tone="success" />
-            <SummaryCard label="Potential savings estimate" value={potentialSavings.status === "complete" ? formatMinorAsCurrency(potentialSavings.amountMinor, dataset.currency) : "Incomplete"} />
-            <SummaryCard label="Goal needing attention" value={attentionGoal ? formatMinorAsCurrency(attentionGoal.requiredMonthlyContributionMinor, dataset.currency) : "None"} />
+            <MetricTile label="Total savings balance" value={formatMinorAsCurrency(calculateTotalSavingsBalance(dataset), dataset.currency)} tone="success" />
+            <MetricTile label="Saved this month" value={formatMinorAsCurrency(calculateActualSavingsContribution(dataset, monthRange), dataset.currency)} tone="success" />
+            <MetricTile label="Potential savings estimate" value={potentialSavings.status === "complete" ? formatMinorAsCurrency(potentialSavings.amountMinor, dataset.currency) : "Incomplete"} tone={potentialSavings.status === "complete" ? "primary" : "warning"} />
+            <MetricTile label="Goal needing attention" value={attentionGoal ? formatMinorAsCurrency(attentionGoal.requiredMonthlyContributionMinor, dataset.currency) : "None"} />
           </View>
 
-          <View style={styles.actionCard}>
+          <AppCard style={styles.actionCard}>
             <AppText variant="label">Savings actions</AppText>
             <AppText tone="subtle" variant="caption">
               Saving money creates a transfer into a savings account. It is not recorded as an expense.
@@ -110,7 +113,7 @@ export function SavingsScreen() {
                 <AppButton onPress={() => router.push(savingsSourceHref as Href)} title="Withdraw from savings" variant="secondary" />
               </>
             )}
-          </View>
+          </AppCard>
 
           {potentialSavings.status === "incomplete" ? (
             <InlineState
@@ -141,23 +144,23 @@ export function SavingsScreen() {
 
           {goalProgress.length > 0 ? (
             <>
-              <AppText style={styles.sectionTitle} variant="title">Active goals</AppText>
-              <View style={styles.listCard}>
+              <SectionHeader title="Active goals" />
+              <AppCard padding="none" style={styles.listCard}>
                 {activeGoals.map((progress) => <GoalRow key={progress.goal.id} progress={progress} />)}
                 {activeGoals.length === 0 ? <AppText style={styles.emptyText} tone="subtle">No active or paused goals.</AppText> : null}
-              </View>
+              </AppCard>
 
-              <AppText style={styles.sectionTitle} variant="title">Completed goals</AppText>
-              <View style={styles.listCard}>
+              <SectionHeader title="Completed goals" />
+              <AppCard padding="none" style={styles.listCard}>
                 {completedGoals.map((progress) => <GoalRow key={progress.goal.id} progress={progress} />)}
                 {completedGoals.length === 0 ? <AppText style={styles.emptyText} tone="subtle">No completed goals yet.</AppText> : null}
-              </View>
+              </AppCard>
 
-              <AppText style={styles.sectionTitle} variant="title">Archived goals</AppText>
-              <View style={styles.listCard}>
+              <SectionHeader title="Archived goals" />
+              <AppCard padding="none" style={styles.listCard}>
                 {archivedGoals.map((progress) => <GoalRow key={progress.goal.id} progress={progress} />)}
                 {archivedGoals.length === 0 ? <AppText style={styles.emptyText} tone="subtle">No archived goals.</AppText> : null}
-              </View>
+              </AppCard>
             </>
           ) : null}
         </>
@@ -167,7 +170,6 @@ export function SavingsScreen() {
 }
 
 function GoalRow({ progress }: { progress: SavingsGoalProgress }) {
-  const visualProgress = `${Math.min(100, progress.progressPercent)}%` as DimensionValue;
   return (
     <Pressable
       accessibilityRole="button"
@@ -185,9 +187,7 @@ function GoalRow({ progress }: { progress: SavingsGoalProgress }) {
           {progress.progressPercent}%
         </AppText>
       </View>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: visualProgress }]} />
-      </View>
+      <ProgressBar value={progress.progressPercent} tone={progress.isOverdue ? "danger" : progress.isAchieved ? "success" : "primary"} />
       <AppText tone="subtle" variant="caption">
         {formatMinorAsCurrency(progress.currentAmountMinor, progress.goal.currency)} saved of {formatMinorAsCurrency(progress.goal.targetMinor, progress.goal.currency)}. Need {formatMinorAsCurrency(progress.requiredMonthlyContributionMinor, progress.goal.currency)} monthly.
       </AppText>
@@ -209,33 +209,18 @@ function GoalRow({ progress }: { progress: SavingsGoalProgress }) {
   );
 }
 
-function SummaryCard({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" }) {
-  return (
-    <View style={styles.summaryCard}>
-      <AppText tone="subtle" variant="caption">{label}</AppText>
-      <AppText tone={tone} variant="label">{value}</AppText>
-    </View>
-  );
-}
-
 function getMessage(error: unknown) {
   return error instanceof Error ? error.message : "We couldn't load your savings. Please try again.";
 }
 
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: theme.spacing.xxxl },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md, marginBottom: theme.spacing.lg },
-  headerCopy: { flex: 1, gap: theme.spacing.xxs },
   summaryGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginBottom: theme.spacing.lg },
-  summaryCard: { width: "47%", minWidth: 150, flexGrow: 1, gap: theme.spacing.xs, padding: theme.spacing.md, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface },
-  actionCard: { gap: theme.spacing.md, marginBottom: theme.spacing.lg, padding: theme.spacing.lg, borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface },
-  sectionTitle: { marginTop: theme.spacing.xl, marginBottom: theme.spacing.md },
-  listCard: { borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface, overflow: "hidden" },
+  actionCard: { gap: theme.spacing.md, marginBottom: theme.spacing.lg, ...theme.shadows.card },
+  listCard: { marginBottom: theme.spacing.xl, ...theme.shadows.card },
   goalRow: { gap: theme.spacing.sm, padding: theme.spacing.md, borderBottomWidth: 1, borderBottomColor: theme.colors.borderSubtle },
   rowTop: { flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md },
   rowCopy: { flex: 1, gap: theme.spacing.xxs },
-  progressTrack: { height: 8, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceMuted, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: theme.radius.pill, backgroundColor: theme.colors.success },
   rowActions: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.sm },
   emptyText: { padding: theme.spacing.lg, textAlign: "center" },
 });

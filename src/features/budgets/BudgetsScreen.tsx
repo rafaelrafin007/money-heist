@@ -1,10 +1,14 @@
 import { router, type Href } from "expo-router";
 import { useMemo, useState } from "react";
-import { Pressable, StyleSheet, View, type DimensionValue } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
+import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
+import { MetricTile } from "@/src/components/MetricTile";
+import { ProgressBar } from "@/src/components/ProgressBar";
+import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useBudgetsForMonth, useCopyBudgets } from "@/src/features/budgets/api/budgetsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
@@ -56,24 +60,23 @@ export function BudgetsScreen() {
 
   return (
     <AppScreen scroll contentStyle={styles.screenContent}>
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <AppText tone="subtle" variant="label">
-            Plan your spending
-          </AppText>
-          <AppText variant="title">Monthly budgets</AppText>
-        </View>
-        <AppButton onPress={() => router.push(`/budgets/new?monthStart=${monthStart}` as Href)} title="Add" />
-      </View>
+      <SectionHeader
+        action={<AppButton onPress={() => router.push(`/budgets/new?monthStart=${monthStart}` as Href)} title="Add" />}
+        eyebrow="Plan your spending"
+        subtitle="Track category limits and see how much room is left this month."
+        title="Monthly budgets"
+      />
 
-      <View style={styles.monthControls}>
+      <AppCard padding="md" style={styles.monthCard}>
+        <View style={styles.monthControls}>
         <AppButton variant="secondary" onPress={() => setMonthStart(shiftCalendarMonth(monthStart, -1))} title="Previous" />
         <View style={styles.monthLabel}>
           <AppText variant="label">{monthLabel(monthStart)}</AppText>
           <AppText tone="subtle" variant="caption">Calendar month</AppText>
         </View>
         <AppButton variant="secondary" onPress={() => setMonthStart(shiftCalendarMonth(monthStart, 1))} title="Next" />
-      </View>
+        </View>
+      </AppCard>
       {monthStart !== currentMonthStart ? (
         <AppButton variant="ghost" onPress={() => setMonthStart(currentMonthStart)} title="Return to current month" />
       ) : null}
@@ -96,10 +99,10 @@ export function BudgetsScreen() {
       {!isLoading && !error ? (
         <>
           <View style={styles.summaryGrid}>
-            <SummaryCard label="Total limit" value={formatMinorAsCurrency(calculateTotalBudgetLimit(summaries), currency)} />
-            <SummaryCard label="Spent" value={formatMinorAsCurrency(-calculateTotalBudgetSpent(summaries), currency)} tone="danger" />
-            <SummaryCard label="Remaining" value={formatMinorAsCurrency(calculateTotalRemainingVariableBudget(summaries), currency)} tone="success" />
-            <SummaryCard label="Daily allowance" value={formatMinorAsCurrency(dailyAllowanceMinor, currency)} />
+            <MetricTile label="Total limit" value={formatMinorAsCurrency(calculateTotalBudgetLimit(summaries), currency)} tone="primary" />
+            <MetricTile label="Spent" value={formatMinorAsCurrency(-calculateTotalBudgetSpent(summaries), currency)} tone="danger" />
+            <MetricTile label="Remaining" value={formatMinorAsCurrency(calculateTotalRemainingVariableBudget(summaries), currency)} tone="success" />
+            <MetricTile label="Daily allowance" value={formatMinorAsCurrency(dailyAllowanceMinor, currency)} />
           </View>
 
           {notice ? (
@@ -116,11 +119,11 @@ export function BudgetsScreen() {
               title="No budgets for this month"
             />
           ) : (
-            <View style={styles.listCard}>
+            <AppCard padding="none" style={styles.listCard}>
               {summaries.map((summary) => (
                 <BudgetRow key={summary.budget.id} summary={summary} />
               ))}
-            </View>
+            </AppCard>
           )}
 
           <AppButton
@@ -136,7 +139,6 @@ export function BudgetsScreen() {
 }
 
 function BudgetRow({ summary }: { summary: BudgetSummary }) {
-  const utilizationWidth = `${Math.min(100, summary.utilizationPercent)}%` as DimensionValue;
   return (
     <Pressable
       accessibilityRole="button"
@@ -156,22 +158,11 @@ function BudgetRow({ summary }: { summary: BudgetSummary }) {
             : `${formatMinorAsCurrency(Math.max(0, summary.remainingMinor), summary.budget.currency)} left`}
         </AppText>
       </View>
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, summary.status === "exceeded" ? styles.progressDanger : summary.status === "warning" ? styles.progressWarning : null, { width: utilizationWidth }]} />
-      </View>
+      <ProgressBar value={summary.utilizationPercent} tone={summary.status === "exceeded" ? "danger" : summary.status === "warning" ? "warning" : "success"} />
       <AppText tone="subtle" variant="caption">
         Spent {formatMinorAsCurrency(summary.spentMinor, summary.budget.currency)} of {formatMinorAsCurrency(summary.budget.limitMinor, summary.budget.currency)}
       </AppText>
     </Pressable>
-  );
-}
-
-function SummaryCard({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "success" | "danger" }) {
-  return (
-    <View style={styles.summaryCard}>
-      <AppText tone="subtle" variant="caption">{label}</AppText>
-      <AppText tone={tone} variant="label">{value}</AppText>
-    </View>
   );
 }
 
@@ -181,19 +172,13 @@ function getMessage(error: unknown) {
 
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: theme.spacing.xxxl },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: theme.spacing.md, marginBottom: theme.spacing.lg },
-  headerCopy: { flex: 1, gap: theme.spacing.xxs },
-  monthControls: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm, marginBottom: theme.spacing.sm },
+  monthCard: { marginBottom: theme.spacing.sm },
+  monthControls: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
   monthLabel: { flex: 1, alignItems: "center", gap: theme.spacing.xxs },
   summaryGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginVertical: theme.spacing.lg },
-  summaryCard: { width: "47%", minWidth: 150, flexGrow: 1, gap: theme.spacing.xs, padding: theme.spacing.md, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface },
   notice: { padding: theme.spacing.md, borderRadius: theme.radius.md, backgroundColor: theme.colors.surfaceMuted, marginBottom: theme.spacing.md },
-  listCard: { borderRadius: theme.radius.lg, borderWidth: 1, borderColor: theme.colors.borderSubtle, backgroundColor: theme.colors.surface, overflow: "hidden", marginBottom: theme.spacing.lg },
+  listCard: { marginBottom: theme.spacing.lg, ...theme.shadows.card },
   budgetRow: { gap: theme.spacing.sm, padding: theme.spacing.md, borderBottomWidth: 1, borderBottomColor: theme.colors.borderSubtle },
   rowTop: { flexDirection: "row", justifyContent: "space-between", gap: theme.spacing.md },
   rowCopy: { flex: 1, gap: theme.spacing.xxs },
-  progressTrack: { height: 8, borderRadius: theme.radius.pill, backgroundColor: theme.colors.surfaceMuted, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: theme.radius.pill, backgroundColor: theme.colors.success },
-  progressWarning: { backgroundColor: theme.colors.warning },
-  progressDanger: { backgroundColor: theme.colors.danger },
 });
