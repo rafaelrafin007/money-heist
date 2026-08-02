@@ -11,7 +11,7 @@ import { SectionHeader } from "@/src/components/SectionHeader";
 import { useAccounts } from "@/src/features/accounts/api/accountsHooks";
 import { useBudgetsForMonth } from "@/src/features/budgets/api/budgetsHooks";
 import { useCategories } from "@/src/features/categories/api/categoriesHooks";
-import { getRealDashboardOverview } from "@/src/features/finance/api/realFinanceSelectors";
+import { buildFinanceDataset, getRealDashboardOverview } from "@/src/features/finance/api/realFinanceSelectors";
 import { InlineState } from "@/src/features/finance/components/InlineState";
 import { getCurrentCalendarMonth } from "@/src/features/finance/dates";
 import { formatMinorAsCurrency } from "@/src/features/finance/money";
@@ -19,6 +19,11 @@ import { useMonthlyFinancePlan } from "@/src/features/planning/api/monthlyFinanc
 import { useSavingsGoals } from "@/src/features/savings/api/savingsGoalsHooks";
 import { QuickEntryActions } from "@/src/features/transactions/components/QuickEntryActions";
 import { useTransactions } from "@/src/features/transactions/api/transactionsHooks";
+import { CashFlowChart, ExpenseCategoryChart, InsightList } from "@/src/features/insights/components/FinanceCharts";
+import { getCashFlowChartData, getExpenseCategoryChartData, getFinanceInsights } from "@/src/features/insights/insightSelectors";
+import { SetupChecklistCard } from "@/src/features/onboarding/SetupChecklistCard";
+import { useOnboarding } from "@/src/features/onboarding/OnboardingProvider";
+import { getSetupChecklistItems, isSetupChecklistComplete } from "@/src/features/onboarding/setupChecklist";
 import { theme } from "@/src/theme";
 
 export function DashboardOverview() {
@@ -29,6 +34,7 @@ export function DashboardOverview() {
   const budgets = useBudgetsForMonth(range.start);
   const goals = useSavingsGoals();
   const monthlyPlan = useMonthlyFinancePlan(range.start, "BDT");
+  const { dismissSetupChecklist, isSetupChecklistDismissed } = useOnboarding();
   const isLoading = accounts.isLoading || categories.isLoading || transactions.isLoading || budgets.isLoading || goals.isLoading || monthlyPlan.isLoading;
   const error = accounts.error ?? categories.error ?? transactions.error ?? budgets.error ?? goals.error ?? monthlyPlan.error;
   const overview =
@@ -39,6 +45,22 @@ export function DashboardOverview() {
           monthlyPlan: monthlyPlan.data ?? null,
         })
       : null;
+  const chartDataset =
+    accounts.data && categories.data && transactions.data && budgets.data && goals.data
+      ? buildFinanceDataset(accounts.data, categories.data, transactions.data, budgets.data, goals.data)
+      : null;
+  const cashFlowChart = chartDataset ? getCashFlowChartData(chartDataset) : [];
+  const expenseCategoryChart = chartDataset ? getExpenseCategoryChartData(chartDataset, new Date(), { limit: 4 }) : [];
+  const dashboardInsights = chartDataset && overview
+    ? getFinanceInsights(chartDataset, new Date(), {
+        potentialSavingsStatus: overview.potentialSavings.status,
+        potentialSavingsWarnings: overview.potentialSavings.warnings,
+      })
+    : [];
+  const setupChecklist = chartDataset ? getSetupChecklistItems(chartDataset, monthlyPlan.data ?? null) : [];
+  const shouldShowChecklist = Boolean(
+    chartDataset && !isSetupChecklistDismissed && !isSetupChecklistComplete(setupChecklist),
+  );
 
   const metrics = overview
     ? [
@@ -88,6 +110,10 @@ export function DashboardOverview() {
 
       {overview ? (
         <>
+          {shouldShowChecklist ? (
+            <SetupChecklistCard items={setupChecklist} onDismiss={() => void dismissSetupChecklist()} />
+          ) : null}
+
           <View style={styles.balanceCard}>
             <View style={styles.balanceTopRow}>
               <View style={styles.balanceIcon}>
@@ -117,6 +143,12 @@ export function DashboardOverview() {
                 value={formatMinorAsCurrency(metric.valueMinor, overview.currency)}
               />
             ))}
+          </View>
+
+          <View style={styles.chartStack}>
+            <CashFlowChart data={cashFlowChart} />
+            <ExpenseCategoryChart data={expenseCategoryChart} />
+            <AppButton onPress={() => router.push("/insights" as Href)} title="View all insights" variant="secondary" />
           </View>
 
           <AppCard tone="warning" style={styles.forecastNote}>
@@ -149,6 +181,9 @@ export function DashboardOverview() {
             ) : null}
             <AppButton onPress={() => router.push("/planning" as Href)} title="Edit monthly plan" variant="secondary" />
           </AppCard>
+
+          <SectionHeader eyebrow="Based on your records" title="Insights" />
+          <InsightList insights={dashboardInsights} limit={3} />
 
           <SectionHeader eyebrow="Active only" title="Recent transactions" />
 
@@ -207,6 +242,7 @@ const styles = StyleSheet.create({
   balanceCopyBlock: { gap: theme.spacing.sm },
   balanceCopy: { opacity: 0.78 },
   metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginBottom: theme.spacing.lg },
+  chartStack: { gap: theme.spacing.lg, marginBottom: theme.spacing.xl },
   forecastNote: { gap: theme.spacing.md, marginBottom: theme.spacing.xl },
   sectionHeaderCompact: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: theme.spacing.md },
   metricGridCompact: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.md, marginTop: theme.spacing.sm },

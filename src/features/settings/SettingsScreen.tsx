@@ -8,11 +8,13 @@ import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
 import { SectionHeader } from "@/src/components/SectionHeader";
+import { useOnboarding } from "@/src/features/onboarding/OnboardingProvider";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { theme } from "@/src/theme";
 
 export function SettingsScreen() {
   const { profile, signOut, user } = useAuth();
+  const { showSetupChecklist } = useOnboarding();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string>();
   const profileRows = [
@@ -105,6 +107,12 @@ export function SettingsScreen() {
         <SettingsAction icon="pie-chart-outline" label="Manage budgets" onPress={() => router.push("/budgets" as Href)} />
         <SettingsAction icon="shield-checkmark-outline" label="Manage savings goals" onPress={() => router.push("/savings" as Href)} />
         <SettingsAction icon="calendar-outline" label="Monthly plan" onPress={() => router.push("/planning" as Href)} />
+      </AppCard>
+
+      <AppCard style={styles.actionCard}>
+        <AppText variant="label">App guide</AppText>
+        <SettingsAction icon="compass-outline" label="View onboarding" onPress={() => router.push("/onboarding" as Href)} />
+        <SettingsAction icon="checkbox-outline" label="Show setup checklist" onPress={() => void showSetupChecklist()} />
       </AppCard>
 
       <AppCard style={styles.actionCard}>

@@ -1,6 +1,6 @@
 import { router, type Href } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, Platform, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
 import { AppScreen } from "@/src/components/AppScreen";
@@ -25,7 +25,6 @@ export function AccountDetailScreen({ accountId }: AccountDetailScreenProps) {
   const transactions = useTransactions();
   const archive = useArchiveAccount(accountId);
   const restore = useRestoreAccount(accountId);
-  const [confirmArchive, setConfirmArchive] = useState(false);
   const [error, setError] = useState<string>();
   const balance = accounts.data && categories.data && transactions.data
     ? getAccountBalancesForDisplay(accounts.data, categories.data, transactions.data).find(
@@ -37,18 +36,45 @@ export function AccountDetailScreen({ accountId }: AccountDetailScreenProps) {
     setError(undefined);
     if (!account.data) return;
 
-    if (!account.data.isArchived && !confirmArchive) {
-      setConfirmArchive(true);
+    if (!account.data.isArchived) {
+      confirmArchiveAccount();
       return;
     }
 
-    try {
-      if (account.data.isArchived) {
-        await restore.mutateAsync();
-      } else {
-        await archive.mutateAsync();
-        setConfirmArchive(false);
+    await restoreAccount();
+  }
+
+  function confirmArchiveAccount() {
+    const title = "Archive account?";
+    const message = "Archived accounts remain in old transactions but cannot be used for new transactions.";
+    const action = () => {
+      void archiveAccount();
+    };
+
+    if (Platform.OS === "web") {
+      if (globalThis.confirm(`${title}\n\n${message}`)) {
+        action();
       }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: "Keep account", style: "cancel" },
+      { text: "Archive account", style: "destructive", onPress: action },
+    ]);
+  }
+
+  async function archiveAccount() {
+    try {
+      await archive.mutateAsync();
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Account archive state could not be changed.");
+    }
+  }
+
+  async function restoreAccount() {
+    try {
+      await restore.mutateAsync();
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Account archive state could not be changed.");
     }
@@ -93,11 +119,6 @@ export function AccountDetailScreen({ accountId }: AccountDetailScreenProps) {
         <Row label="Opening balance" value={formatMinorAsCurrency(account.data.openingBalanceMinor, account.data.currency)} />
       </View>
 
-      {confirmArchive ? (
-        <AppText style={styles.warning} tone="danger" variant="caption">
-          Press Archive account again to confirm. Archived accounts remain in old transactions but cannot be used for new transactions.
-        </AppText>
-      ) : null}
       {error ? (
         <AppText style={styles.warning} tone="danger" variant="caption">
           {error}

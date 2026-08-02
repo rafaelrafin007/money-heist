@@ -52,6 +52,14 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
   const activeSavingsAccounts = activeAccounts.filter((account) => account.isSavings);
   const activeCategories = (categories.data ?? []).filter((category) => !category.isArchived);
   const entryMode: TransactionEntryMode = params.mode === "savings" ? "savings" : "standard";
+  const selectedSourceAccount = activeAccounts.find((account) => account.id === values.accountId);
+  const selectedDestinationAccount = activeAccounts.find((account) => account.id === values.destinationAccountId);
+  const amountCurrency =
+    values.type === "income"
+      ? selectedSourceAccount?.currency
+      : values.type === "transfer"
+        ? selectedSourceAccount?.currency ?? selectedDestinationAccount?.currency
+        : selectedSourceAccount?.currency;
   const selectableCategories = useMemo(
     () => activeCategories.filter((category) => category.kind === values.type),
     [activeCategories, values.type],
@@ -150,11 +158,16 @@ export function TransactionFormScreen({ transaction }: TransactionFormScreenProp
 
         <AppTextInput
           keyboardType="decimal-pad"
-          label="Amount"
+          label={amountCurrency ? `Amount (${amountCurrency})` : "Amount"}
           onChangeText={(amount) => setValues((current) => ({ ...current, amount }))}
           placeholder="1250.75"
           value={values.amount}
         />
+        <AppText tone="subtle" variant="caption">
+          {entryMode === "savings"
+            ? "Saving money is recorded as a transfer, not an expense."
+            : "Enter the amount as a decimal number, such as 1250.75."}
+        </AppText>
 
         <View style={styles.group}>
           <AppText variant="label">Date shortcut</AppText>

@@ -24,6 +24,8 @@ import { getCalendarMonthRange, getCurrentCalendarMonth, monthLabel, shiftCalend
 import { buildFinanceDataset } from "@/src/features/finance/api/realFinanceSelectors";
 import { InlineState } from "@/src/features/finance/components/InlineState";
 import { formatMinorAsCurrency } from "@/src/features/finance/money";
+import { BudgetHealthCard } from "@/src/features/insights/components/FinanceCharts";
+import { getBudgetHealthSummary } from "@/src/features/insights/insightSelectors";
 import { useTransactions } from "@/src/features/transactions/api/transactionsHooks";
 import { theme } from "@/src/theme";
 
@@ -45,6 +47,7 @@ export function BudgetsScreen() {
     [accounts.data, budgets.data, categories.data, transactions.data],
   );
   const summaries = useMemo(() => calculateBudgetSummaries(dataset), [dataset]);
+  const budgetHealth = useMemo(() => getBudgetHealthSummary(dataset), [dataset]);
   const currency = dataset.currency;
   const dailyAllowanceMinor = calculateDailyRemainingBudgetAllowance(summaries, monthRange);
 
@@ -119,11 +122,14 @@ export function BudgetsScreen() {
               title="No budgets for this month"
             />
           ) : (
-            <AppCard padding="none" style={styles.listCard}>
-              {summaries.map((summary) => (
-                <BudgetRow key={summary.budget.id} summary={summary} />
-              ))}
-            </AppCard>
+            <>
+              <BudgetHealthCard summary={budgetHealth} />
+              <AppCard padding="none" style={styles.listCard}>
+                {summaries.map((summary) => (
+                  <BudgetRow key={summary.budget.id} summary={summary} />
+                ))}
+              </AppCard>
+            </>
           )}
 
           <AppButton

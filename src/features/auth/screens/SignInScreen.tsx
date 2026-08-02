@@ -55,7 +55,7 @@ export function SignInScreen() {
       return;
     }
 
-    router.replace("/dashboard");
+    router.replace("/");
   }
 
   return (

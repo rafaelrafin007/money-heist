@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, type Href } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
@@ -39,6 +39,7 @@ const filters: { label: string; value: TransactionFilter }[] = [
   { label: "Expense", value: "expense" },
   { label: "Transfer", value: "transfer" },
 ];
+const initialVisibleTransactionCount = 60;
 
 export function TransactionsScreen() {
   const accounts = useAccounts();
@@ -48,6 +49,7 @@ export function TransactionsScreen() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("today");
   const [search, setSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(initialVisibleTransactionCount);
   const isLoading = accounts.isLoading || categories.isLoading || transactions.isLoading;
   const error = accounts.error ?? categories.error ?? transactions.error;
   const dataset = useMemo(
@@ -83,9 +85,13 @@ export function TransactionsScreen() {
       return matchesType && matchesStatus && matchesPeriod && matchesSearch;
     });
   }, [filter, periodFilter, search, statusFilter, transactionViews]);
+  useEffect(() => {
+    setVisibleCount(initialVisibleTransactionCount);
+  }, [filter, periodFilter, search, statusFilter]);
+  const visibleTransactions = filteredTransactions.slice(0, visibleCount);
   const filteredTransactionRows = useMemo(
-    () => (transactions.data ?? []).filter((transaction) => filteredTransactions.some((view) => view.id === transaction.id)),
-    [filteredTransactions, transactions.data],
+    () => (transactions.data ?? []).filter((transaction) => visibleTransactions.some((view) => view.id === transaction.id)),
+    [transactions.data, visibleTransactions],
   );
   const groupedTransactions = useMemo(
     () => groupTransactionsByCalendarDate(dataset, filteredTransactionRows),
@@ -123,7 +129,9 @@ export function TransactionsScreen() {
           <AppCard padding="md" style={styles.controlCard}>
             <View style={styles.filterHeader}>
               <AppText variant="label">View</AppText>
-              <AppText tone="subtle" variant="caption">{filteredTransactions.length} shown</AppText>
+              <AppText tone="subtle" variant="caption">
+                {Math.min(visibleCount, filteredTransactions.length)} of {filteredTransactions.length} shown
+              </AppText>
             </View>
             <View style={styles.periodFilters}>
               <AppChip active={periodFilter === "today"} label="Today" onPress={() => setPeriodFilter("today")} />
@@ -204,6 +212,14 @@ export function TransactionsScreen() {
             </AppCard>
             ))}
           </View>
+
+          {filteredTransactions.length > visibleCount ? (
+            <AppButton
+              onPress={() => setVisibleCount((current) => current + initialVisibleTransactionCount)}
+              title="Load more transactions"
+              variant="secondary"
+            />
+          ) : null}
         </>
       ) : null}
     </AppScreen>

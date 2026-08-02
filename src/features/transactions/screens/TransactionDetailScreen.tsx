@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, type Href } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, Platform, StyleSheet, View } from "react-native";
 
 import { AppButton } from "@/src/components/AppButton";
 import { AppCard } from "@/src/components/AppCard";
@@ -27,23 +27,52 @@ export function TransactionDetailScreen({ transactionId }: TransactionDetailScre
   const categories = useCategories();
   const cancel = useCancelTransaction(transactionId);
   const restore = useRestoreTransaction(transactionId);
-  const [confirmCancel, setConfirmCancel] = useState(false);
   const [error, setError] = useState<string>();
 
   async function handleStatusToggle() {
     if (!transaction.data) return;
     setError(undefined);
-    if (transaction.data.status === "active" && !confirmCancel) {
-      setConfirmCancel(true);
+
+    if (transaction.data.status === "active") {
+      confirmCancelTransaction();
       return;
     }
-    try {
-      if (transaction.data.status === "cancelled") {
-        await restore.mutateAsync();
-      } else {
-        await cancel.mutateAsync();
-        setConfirmCancel(false);
+
+    await restoreTransaction();
+  }
+
+  function confirmCancelTransaction() {
+    const title = "Cancel transaction?";
+    const message = "Cancelled transactions remain in history and do not affect totals.";
+    const action = () => {
+      void cancelTransaction();
+    };
+
+    if (Platform.OS === "web") {
+      if (globalThis.confirm(`${title}\n\n${message}`)) {
+        action();
       }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: "Keep transaction", style: "cancel" },
+      { text: "Cancel transaction", style: "destructive", onPress: action },
+    ]);
+  }
+
+  async function cancelTransaction() {
+    try {
+      await cancel.mutateAsync();
+      void transaction.refetch();
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "Transaction status could not be changed.");
+    }
+  }
+
+  async function restoreTransaction() {
+    try {
+      await restore.mutateAsync();
       void transaction.refetch();
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Transaction status could not be changed.");
@@ -119,11 +148,6 @@ export function TransactionDetailScreen({ transactionId }: TransactionDetailScre
         </AppText>
       ) : null}
 
-      {confirmCancel ? (
-        <AppText style={styles.warning} tone="danger" variant="caption">
-          Press Cancel transaction again to confirm. Cancelled transactions remain in history but leave all totals.
-        </AppText>
-      ) : null}
       {error ? (
         <AppText style={styles.warning} tone="danger" variant="caption">
           {error}
