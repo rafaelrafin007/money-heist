@@ -2,7 +2,7 @@
   "expo": {
     "name": "Money Heist",
     "slug": "money-heist",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "moneyheist",
@@ -14,7 +14,6 @@
     },
     "android": {
       "package": "com.rafaelrafin007.moneyheist",
-      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#0B1F2A",
         "foregroundImage": "./assets/images/adaptive-icon.png"
@@ -52,6 +51,12 @@
         "projectId": "2d3ffc45-cd87-4330-9112-bdc60d69240f"
       }
     },
-    "owner": "rafaelrafin007s-team"
+    "owner": "rafaelrafin007s-team",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/2d3ffc45-cd87-4330-9112-bdc60d69240f"
+    }
   }
 }
