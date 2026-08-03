@@ -111,7 +111,7 @@ export function SettingsScreen() {
 
       <AppCard style={styles.actionCard}>
         <AppText variant="label">App guide</AppText>
-        <SettingsAction icon="compass-outline" label="View onboarding" onPress={() => router.push("/onboarding" as Href)} />
+        <SettingsAction icon="compass-outline" label="View onboarding" onPress={() => router.push("/onboarding?mode=replay" as Href)} />
         <SettingsAction icon="checkbox-outline" label="Show setup checklist" onPress={() => void showSetupChecklist()} />
       </AppCard>
 

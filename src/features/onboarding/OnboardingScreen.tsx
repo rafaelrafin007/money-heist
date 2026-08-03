@@ -1,13 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router, type Href } from "expo-router";
-import { useState } from "react";
+import { router, useLocalSearchParams, type Href } from "expo-router";
+import { useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppButton } from "@/src/components/AppButton";
 import { AppCard } from "@/src/components/AppCard";
 import { AppScreen } from "@/src/components/AppScreen";
 import { AppText } from "@/src/components/AppText";
 import { useOnboarding } from "@/src/features/onboarding/OnboardingProvider";
+import {
+  getNextOnboardingIndex,
+  getOnboardingExitHref,
+  getPreviousOnboardingIndex,
+  shouldIgnoreOnboardingExitPress,
+  type OnboardingExitTarget,
+} from "@/src/features/onboarding/onboardingRouting";
 import { theme } from "@/src/theme";
 
 type OnboardingStep = {
@@ -50,18 +58,46 @@ const steps: OnboardingStep[] = [
 ];
 
 export function OnboardingScreen() {
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [completionMessage, setCompletionMessage] = useState<string>();
+  const hasNavigatedRef = useRef(false);
   const { completeOnboarding } = useOnboarding();
   const current = steps[index];
   const isLastStep = index === steps.length - 1;
+  const isReplay = params.mode === "replay";
 
-  async function finish(href: Href = "/dashboard") {
-    await completeOnboarding();
-    router.replace(href);
+  function continueToNextStep() {
+    setIndex((currentIndex) => getNextOnboardingIndex(currentIndex, steps.length));
+  }
+
+  async function finish(target: OnboardingExitTarget = "dashboard") {
+    if (shouldIgnoreOnboardingExitPress(isCompleting, hasNavigatedRef.current)) {
+      return;
+    }
+
+    setIsCompleting(true);
+    setCompletionMessage(undefined);
+
+    try {
+      const result = await completeOnboarding();
+      if (!result.ok) {
+        setCompletionMessage("Your guide progress may need to be saved again later.");
+      }
+
+      hasNavigatedRef.current = true;
+      router.replace(getOnboardingExitHref(target) as Href);
+    } finally {
+      if (!hasNavigatedRef.current) {
+        setIsCompleting(false);
+      }
+    }
   }
 
   return (
-    <AppScreen scroll contentStyle={styles.screenContent}>
+    <AppScreen scroll contentStyle={[styles.screenContent, { paddingBottom: theme.spacing.xxxl + insets.bottom }]}>
       <View style={styles.progressRow}>
         {steps.map((step, stepIndex) => (
           <View
@@ -93,19 +129,25 @@ export function OnboardingScreen() {
 
       {isLastStep ? (
         <View style={styles.actions}>
-          <AppButton onPress={() => void finish("/accounts/new")} title="Add first account" />
-          <AppButton onPress={() => void finish("/dashboard")} title="Go to dashboard" variant="secondary" />
-          <AppButton onPress={() => void finish("/dashboard")} title="Skip for now" variant="ghost" />
+          <AppButton disabled={isCompleting} loading={isCompleting} onPress={() => void finish("first-account")} title="Add first account" />
+          <AppButton disabled={isCompleting} onPress={() => void finish("dashboard")} title="Take me to Dashboard" variant="secondary" />
+          <AppButton disabled={isCompleting} onPress={() => void finish("dashboard")} title={isReplay ? "Exit guide" : "Skip for now"} variant="ghost" />
         </View>
       ) : (
         <View style={styles.actions}>
-          <AppButton onPress={() => setIndex((currentIndex) => currentIndex + 1)} title="Continue" />
-          <AppButton onPress={() => void finish("/dashboard")} title="Skip for now" variant="ghost" />
+          <AppButton disabled={isCompleting} onPress={continueToNextStep} title="Continue" />
+          <AppButton disabled={isCompleting} onPress={() => void finish("dashboard")} title={isReplay ? "Exit guide" : "Skip for now"} variant="ghost" />
         </View>
       )}
 
+      {completionMessage ? (
+        <AppText style={styles.warning} tone="subtle" variant="caption">
+          {completionMessage}
+        </AppText>
+      ) : null}
+
       {index > 0 ? (
-        <Pressable accessibilityRole="button" onPress={() => setIndex((currentIndex) => Math.max(0, currentIndex - 1))} style={styles.backButton}>
+        <Pressable accessibilityRole="button" disabled={isCompleting} onPress={() => setIndex((currentIndex) => getPreviousOnboardingIndex(currentIndex))} style={styles.backButton}>
           <AppText tone="subtle" variant="label">Back</AppText>
         </Pressable>
       ) : null}
@@ -172,5 +214,11 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: "center",
     marginTop: theme.spacing.md,
+  },
+  warning: {
+    marginTop: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.warningSurface,
   },
 });

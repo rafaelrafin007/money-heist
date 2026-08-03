@@ -1,18 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { getLocalAppValue, setLocalAppValue } from "@/src/lib/localAppStorage";
-import { useAuth } from "@/src/providers/AuthProvider";
+import { completeOnboardingPreference, type OnboardingCompletionResult } from "@/src/features/onboarding/onboardingCompletion";
+import type { OnboardingStatus } from "@/src/features/onboarding/onboardingRouting";
 import {
   getOnboardingStorageKey,
   getSetupChecklistStorageKey,
   isStoredFlagComplete,
 } from "@/src/features/onboarding/onboardingStorage";
+import { getLocalAppValue, setLocalAppValue } from "@/src/lib/localAppStorage";
+import { useAuth } from "@/src/providers/AuthProvider";
 
 type OnboardingContextValue = {
+  status: OnboardingStatus;
   isInitializing: boolean;
   hasCompletedOnboarding: boolean;
   isSetupChecklistDismissed: boolean;
-  completeOnboarding: () => Promise<void>;
+  completeOnboarding: () => Promise<OnboardingCompletionResult>;
   dismissSetupChecklist: () => Promise<void>;
   showSetupChecklist: () => Promise<void>;
 };
@@ -24,8 +27,8 @@ type OnboardingProviderProps = {
 };
 
 export function OnboardingProvider({ children }: OnboardingProviderProps) {
-  const { user } = useAuth();
-  const [isInitializing, setIsInitializing] = useState(false);
+  const { user, isInitializing: isAuthInitializing } = useAuth();
+  const [status, setStatus] = useState<OnboardingStatus>("loading");
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [isSetupChecklistDismissed, setIsSetupChecklistDismissed] = useState(false);
 
@@ -33,28 +36,44 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     let isActive = true;
 
     async function loadState(userId: string) {
-      setIsInitializing(true);
+      setStatus("loading");
+
       try {
         const [onboardingValue, checklistValue] = await Promise.all([
           getLocalAppValue(getOnboardingStorageKey(userId)),
           getLocalAppValue(getSetupChecklistStorageKey(userId)),
         ]);
 
-        if (isActive) {
-          setHasCompletedOnboarding(isStoredFlagComplete(onboardingValue));
-          setIsSetupChecklistDismissed(isStoredFlagComplete(checklistValue));
+        if (!isActive) {
+          return;
         }
-      } finally {
-        if (isActive) {
-          setIsInitializing(false);
+
+        const isComplete = isStoredFlagComplete(onboardingValue);
+        setHasCompletedOnboarding(isComplete);
+        setIsSetupChecklistDismissed(isStoredFlagComplete(checklistValue));
+        setStatus(isComplete ? "complete" : "incomplete");
+      } catch {
+        if (!isActive) {
+          return;
         }
+
+        setHasCompletedOnboarding(false);
+        setIsSetupChecklistDismissed(false);
+        setStatus("incomplete");
       }
+    }
+
+    if (isAuthInitializing) {
+      setStatus("loading");
+      return () => {
+        isActive = false;
+      };
     }
 
     if (!user?.id) {
       setHasCompletedOnboarding(false);
       setIsSetupChecklistDismissed(false);
-      setIsInitializing(false);
+      setStatus("signed-out");
       return () => {
         isActive = false;
       };
@@ -65,12 +84,17 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     return () => {
       isActive = false;
     };
-  }, [user?.id]);
+  }, [isAuthInitializing, user?.id]);
 
   const completeOnboarding = useCallback(async () => {
-    if (!user?.id) return;
-    await setLocalAppValue(getOnboardingStorageKey(user.id), "true");
-    setHasCompletedOnboarding(true);
+    return completeOnboardingPreference({
+      userId: user?.id,
+      markComplete: () => {
+        setHasCompletedOnboarding(true);
+        setStatus("complete");
+      },
+      persist: setLocalAppValue,
+    });
   }, [user?.id]);
 
   const dismissSetupChecklist = useCallback(async () => {
@@ -87,7 +111,8 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
 
   const value = useMemo(
     () => ({
-      isInitializing,
+      status,
+      isInitializing: status === "loading",
       hasCompletedOnboarding,
       isSetupChecklistDismissed,
       completeOnboarding,
@@ -98,9 +123,9 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       completeOnboarding,
       dismissSetupChecklist,
       hasCompletedOnboarding,
-      isInitializing,
       isSetupChecklistDismissed,
       showSetupChecklist,
+      status,
     ],
   );
 

@@ -3,6 +3,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  type StyleProp,
   View,
   type ViewStyle,
 } from "react-native";
@@ -13,7 +14,7 @@ import { theme } from "@/src/theme";
 type AppScreenProps = {
   children: React.ReactNode;
   scroll?: boolean;
-  contentStyle?: ViewStyle;
+  contentStyle?: StyleProp<ViewStyle>;
 };
 
 export function AppScreen({ children, scroll = false, contentStyle }: AppScreenProps) {

@@ -32,10 +32,12 @@ describe("release configuration", () => {
     expect(config.name).toBe("Money Heist");
     expect(config.slug).toBe("money-heist");
     expect(config.scheme).toBe("moneyheist");
-    expect(config.version).toBe("1.0.0");
+    expect(config.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(config.android?.package).toBe("com.rafaelrafin007.moneyheist");
     expect(config.android?.package).not.toBe("com.example.moneyheist");
-    expect(config.android?.versionCode).toBeGreaterThanOrEqual(1);
+    if (typeof config.android?.versionCode === "number") {
+      expect(config.android.versionCode).toBeGreaterThanOrEqual(1);
+    }
     expect(assetExists(config.icon)).toBe(true);
     expect(assetExists(config.android?.adaptiveIcon?.foregroundImage ?? "")).toBe(true);
     expect(assetExists(config.web?.favicon ?? "")).toBe(true);

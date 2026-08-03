@@ -14,7 +14,7 @@ import {
   type DateRange,
 } from "@/src/features/finance/dates";
 import { addMinor, formatMinorAsCurrency } from "@/src/features/finance/money";
-import type { Category, FinanceDataset, Transaction } from "@/src/features/finance/types";
+import type { FinanceDataset, Transaction } from "@/src/features/finance/types";
 import { activeTransactionsInRange } from "@/src/features/finance/validation";
 import type { RealPotentialSavingsResult } from "@/src/features/planning/potentialSavings";
 

@@ -1,10 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { Account, Budget, Category, FinanceDataset, MonthlyFinancePlan, Transaction } from "@/src/features/finance/types";
+import { completeOnboardingPreference } from "@/src/features/onboarding/onboardingCompletion";
+import {
+  dashboardRoute,
+  firstAccountRoute,
+  getAuthenticatedEntryDecision,
+  getNextOnboardingIndex,
+  getOnboardingExitHref,
+  getPreviousOnboardingIndex,
+  onboardingRoute,
+  shouldIgnoreOnboardingExitPress,
+  signInRoute,
+} from "@/src/features/onboarding/onboardingRouting";
 import {
   getOnboardingStorageKey,
   getSetupChecklistStorageKey,
   isStoredFlagComplete,
+  onboardingCompleteStorageValue,
 } from "@/src/features/onboarding/onboardingStorage";
 import { getSetupChecklistItems, isSetupChecklistComplete } from "@/src/features/onboarding/setupChecklist";
 
@@ -15,6 +28,75 @@ describe("onboarding storage helpers", () => {
     expect(isStoredFlagComplete("true")).toBe(true);
     expect(isStoredFlagComplete("false")).toBe(false);
     expect(isStoredFlagComplete(null)).toBe(false);
+    expect(() => getOnboardingStorageKey("")).toThrow(/user id/);
+    expect(() => getSetupChecklistStorageKey("")).toThrow(/user id/);
+  });
+
+  it("updates in-memory completion before persistence and writes the stable user-scoped key", async () => {
+    const markComplete = vi.fn();
+    const persist = vi.fn<(key: string, value: string) => Promise<void>>().mockResolvedValue(undefined);
+
+    const result = await completeOnboardingPreference({ userId: "user-a", markComplete, persist });
+
+    expect(result).toEqual({ ok: true });
+    expect(markComplete.mock.invocationCallOrder[0]).toBeLessThan(persist.mock.invocationCallOrder[0]);
+    expect(persist).toHaveBeenCalledWith(getOnboardingStorageKey("user-a"), onboardingCompleteStorageValue);
+  });
+
+  it("does not permanently trap the user when persistence fails", async () => {
+    const markComplete = vi.fn();
+    const persist = vi.fn<(key: string, value: string) => Promise<void>>().mockRejectedValue(new Error("storage failed"));
+
+    const result = await completeOnboardingPreference({ userId: "user-a", markComplete, persist });
+
+    expect(result.ok).toBe(false);
+    expect(markComplete).toHaveBeenCalled();
+  });
+
+  it("does not write an invalid key before a user id exists", async () => {
+    const markComplete = vi.fn();
+    const persist = vi.fn<(key: string, value: string) => Promise<void>>().mockResolvedValue(undefined);
+
+    const result = await completeOnboardingPreference({ userId: undefined, markComplete, persist });
+
+    expect(result.ok).toBe(false);
+    expect(markComplete).not.toHaveBeenCalled();
+    expect(persist).not.toHaveBeenCalled();
+  });
+});
+
+describe("onboarding navigation helpers", () => {
+  it("advances forward and backward through onboarding pages", () => {
+    expect(getNextOnboardingIndex(0, 4)).toBe(1);
+    expect(getNextOnboardingIndex(1, 4)).toBe(2);
+    expect(getNextOnboardingIndex(2, 4)).toBe(3);
+    expect(getNextOnboardingIndex(3, 4)).toBe(3);
+    expect(getPreviousOnboardingIndex(3)).toBe(2);
+    expect(getPreviousOnboardingIndex(0)).toBe(0);
+  });
+
+  it("uses replacement-safe exit destinations for skip, finish, replay and first-account actions", () => {
+    expect(getOnboardingExitHref("dashboard")).toBe(dashboardRoute);
+    expect(getOnboardingExitHref("first-account")).toBe(firstAccountRoute);
+  });
+
+  it("guards multiple rapid exit taps", () => {
+    expect(shouldIgnoreOnboardingExitPress(false, false)).toBe(false);
+    expect(shouldIgnoreOnboardingExitPress(true, false)).toBe(true);
+    expect(shouldIgnoreOnboardingExitPress(false, true)).toBe(true);
+  });
+});
+
+describe("onboarding route guard", () => {
+  it("does not redirect while auth or onboarding state is unresolved", () => {
+    expect(getAuthenticatedEntryDecision({ isAuthInitializing: true, isAuthenticated: false, onboardingStatus: "loading" })).toEqual({ kind: "loading" });
+    expect(getAuthenticatedEntryDecision({ isAuthInitializing: false, isAuthenticated: true, onboardingStatus: "loading" })).toEqual({ kind: "loading" });
+  });
+
+  it("routes signed-out, incomplete and completed users correctly", () => {
+    expect(getAuthenticatedEntryDecision({ isAuthInitializing: false, isAuthenticated: false, onboardingStatus: "signed-out" })).toEqual({ kind: "redirect", href: signInRoute });
+    expect(getAuthenticatedEntryDecision({ isAuthInitializing: false, isAuthenticated: true, onboardingStatus: "incomplete" })).toEqual({ kind: "redirect", href: onboardingRoute });
+    expect(getAuthenticatedEntryDecision({ isAuthInitializing: false, isAuthenticated: true, onboardingStatus: "complete" })).toEqual({ kind: "redirect", href: dashboardRoute });
   });
 });
 

@@ -17,9 +17,7 @@ export async function setLocalAppValue(key: string, value: string) {
     return;
   }
 
-  await SecureStore.setItemAsync(key, value, {
-    keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-  });
+  await SecureStore.setItemAsync(key, value);
 }
 
 export async function removeLocalAppValue(key: string) {
