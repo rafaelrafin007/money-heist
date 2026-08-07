@@ -1,11 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { Platform } from "react-native";
 
 import { completeOnboardingPreference, type OnboardingCompletionResult } from "@/src/features/onboarding/onboardingCompletion";
 import type { OnboardingStatus } from "@/src/features/onboarding/onboardingRouting";
 import {
-  getOnboardingStorageKey,
   getSetupChecklistStorageKey,
-  isStoredFlagComplete,
+  migrateLegacyWebPreferences,
+  readOnboardingPreferences,
 } from "@/src/features/onboarding/onboardingStorage";
 import { getLocalAppValue, setLocalAppValue } from "@/src/lib/localAppStorage";
 import { useAuth } from "@/src/providers/AuthProvider";
@@ -15,6 +16,7 @@ type OnboardingContextValue = {
   isInitializing: boolean;
   hasCompletedOnboarding: boolean;
   isSetupChecklistDismissed: boolean;
+  hasStorageError: boolean;
   completeOnboarding: () => Promise<OnboardingCompletionResult>;
   dismissSetupChecklist: () => Promise<void>;
   showSetupChecklist: () => Promise<void>;
@@ -31,32 +33,35 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
   const [status, setStatus] = useState<OnboardingStatus>("loading");
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [isSetupChecklistDismissed, setIsSetupChecklistDismissed] = useState(false);
+  const [hasStorageError, setHasStorageError] = useState(false);
 
   useEffect(() => {
     let isActive = true;
 
     async function loadState(userId: string) {
       setStatus("loading");
+      setHasStorageError(false);
 
       try {
-        const [onboardingValue, checklistValue] = await Promise.all([
-          getLocalAppValue(getOnboardingStorageKey(userId)),
-          getLocalAppValue(getSetupChecklistStorageKey(userId)),
-        ]);
+        if (Platform.OS === "web" && typeof globalThis.localStorage !== "undefined") {
+          migrateLegacyWebPreferences(userId, globalThis.localStorage);
+        }
+
+        const flags = await readOnboardingPreferences(userId, getLocalAppValue);
 
         if (!isActive) {
           return;
         }
 
-        const isComplete = isStoredFlagComplete(onboardingValue);
-        setHasCompletedOnboarding(isComplete);
-        setIsSetupChecklistDismissed(isStoredFlagComplete(checklistValue));
-        setStatus(isComplete ? "complete" : "incomplete");
+        setHasCompletedOnboarding(flags.onboardingCompleted);
+        setIsSetupChecklistDismissed(flags.setupChecklistDismissed);
+        setStatus(flags.onboardingCompleted ? "complete" : "incomplete");
       } catch {
         if (!isActive) {
           return;
         }
 
+        setHasStorageError(true);
         setHasCompletedOnboarding(false);
         setIsSetupChecklistDismissed(false);
         setStatus("incomplete");
@@ -115,6 +120,7 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       isInitializing: status === "loading",
       hasCompletedOnboarding,
       isSetupChecklistDismissed,
+      hasStorageError,
       completeOnboarding,
       dismissSetupChecklist,
       showSetupChecklist,
@@ -123,6 +129,7 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       completeOnboarding,
       dismissSetupChecklist,
       hasCompletedOnboarding,
+      hasStorageError,
       isSetupChecklistDismissed,
       showSetupChecklist,
       status,
